@@ -1,0 +1,27 @@
+[project]
+name = "aiproxy"
+version = "0.1.0"
+authors = [
+  { name="Stricko", email="adams@strickos.com" },
+]
+description = "A simple library for interacting with the Azure OpenAI API"
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+  'openai',
+  'requests',
+  'regex',
+  'azure-cosmos', 
+  'azure-messaging-webpubsubservice', 
+  'azure-search-documents', 
+  'azure-identity'
+]
+
+[project.urls]
+Homepage = "https://github.com/demo-ninjas/aiproxy"
+Issues = "https://github.com/demo-ninjas/aiproxy/issues"

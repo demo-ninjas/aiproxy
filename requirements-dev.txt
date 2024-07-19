@@ -1,0 +1,10 @@
+openai
+requests
+regex
+tiktoken
+azure-cosmos
+azure-messaging-webpubsubservice
+azure-search-documents
+azure-identity
+azure-storage-blob
+python-dotenv
