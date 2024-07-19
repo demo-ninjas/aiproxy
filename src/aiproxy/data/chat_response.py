@@ -68,6 +68,10 @@ class ChatResponse:
     """Whether the response has been filtered by the content moderation filters."""
     filter_reason:str|None = None
 
+    def add_metadata(self, key:str, value:any):
+        if self.metadata is None: self.metadata = dict()
+        self.metadata[key] = value
+        
     def to_api_response(self) -> dict:
         out = dict()
         if self.id is not None: out["id"] = self.id

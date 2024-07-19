@@ -85,4 +85,6 @@ class RouteToAgentAgent(Agent):
                 return response
             else: 
                 logging.debug(f"Selected agent: {selected_agent.name} to answer prompt: {message}")
-                return selected_agent.process_message(message, context)
+                resp = selected_agent.process_message(message, context)
+                resp.add_metadata("responder", selected_agent.name)
+                return resp
