@@ -46,6 +46,10 @@ class AzureSearchConfig:
         if config.connection_string is not None and config.connection_string.upper() == "DEFAULT":
             config.connection_string = AzureSearchConfig.__root_connection_string()
 
+        config.embedding_model = config_item.get("embedding-model") or config_item.get("embedding-model-name", None)
+        if config.embedding_model is not None and config.embedding_model.upper() == "DEFAULT":
+            config.embedding_model = AzureSearchConfig.__root_embedding_model()
+
         config.semantic_config = config_item.get("semantic-config") or config_item.get("semantic-config-name", None)
         if config.semantic_config is not None and config.semantic_config.upper() == "DEFAULT":
             config.semantic_config = AzureSearchConfig.__root_semantic_config()

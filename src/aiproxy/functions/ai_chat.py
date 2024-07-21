@@ -15,7 +15,7 @@ def ai_chat(
     """
     Add a completion to the chat response
     """
-    from proxy.completions_proxy import CompletionsProxy
+    from aiproxy.proxy.completions_proxy import CompletionsProxy
     ctx_to_use = context
     if isolated: 
         ctx_to_use = context.clone_for_single_shot()
@@ -41,7 +41,7 @@ def ai_assistants_chat(
     """
     Add a completion to the chat response
     """
-    from proxy.assistant_proxy import AssistantProxy
+    from aiproxy.proxy.assistant_proxy import AssistantProxy
 
     ctx_to_use = context
     if isolated: 

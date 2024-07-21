@@ -9,7 +9,7 @@
             "type": "debugpy",
             "request": "launch",
             "cwd": "${cwd}",
-            "program": "${workspaceFolder}/src/test.py",
+            "program": "${workspaceFolder}/test/test.py",
             "console": "integratedTerminal"
         }
     ]

@@ -40,7 +40,7 @@ class CompletionsProxy(AbstractProxy):
                      override_model:str = None, 
                      override_system_prompt:str = None, 
                      function_filter:Callable[[str,str], bool] = None, 
-                     use_functions:bool = True, 
+                     use_functions:bool = None, 
                      timeout_secs:int = 0, 
                      use_completions_data_source_extensions:bool = False
                      ) -> ChatResponse:
@@ -64,7 +64,8 @@ class CompletionsProxy(AbstractProxy):
             step_count = 0
             remaining_secs = timeout_secs if timeout_secs > 0 else self._config.timeout_secs
             model = override_model or self._config.oai_model
-            tool_list = GLOBAL_FUNCTIONS_REGISTRY.generate_tools_definition(function_filter) if use_functions else None
+            using_functions = use_functions if use_functions is not None else self._config.use_functions
+            tool_list = GLOBAL_FUNCTIONS_REGISTRY.generate_tools_definition(function_filter) if using_functions else None
             chunk_data = ChunkData() if context.has_stream() else None
             while more_steps and step_count < self._config.max_steps:
                 if remaining_secs <= 0:

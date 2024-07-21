@@ -9,6 +9,7 @@ class ChatContext:
     stream_writer:StreamWriter
     history_provider:HistoryProvider
     function_args_preprocessor:Callable[[dict, FunctionDef, 'ChatContext'], dict]
+    
 
     def __init__(self, 
                  thread_id:str = None, 
@@ -72,6 +73,8 @@ class ChatContext:
         self.add_message_to_history(msg)
 
     def add_message_to_history(self, message:ChatMessage):
+        if self.history is None: 
+            self.history = []
         self.history.append(message)
 
     def save_history(self):

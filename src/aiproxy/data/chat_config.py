@@ -16,6 +16,7 @@ class ChatConfig:
     
     assistant_name:str = None
     assistant_id:str = None
+    use_functions:bool = True
 
     timeout_secs:int = None
     interim_result_publish_frequency_secs:float = 0.032
@@ -40,6 +41,7 @@ class ChatConfig:
         self.assistant_name = os.environ.get('OAI_ASSISTANT_NAME', None)
         self.assistant_id = os.environ.get('OAI_ASSISTANT_ID', None)
         self.system_prompt = os.environ.get('OAI_SYSTEM_PROMPT', None)
+        self.use_functions = os.environ.get('AI_USE_FUNCTIONS', 'true').lower() in ['true', '1', 'y', 't', 'on', 'yes', 'enabled']
         self.timeout_secs = int(os.environ.get('AI_TIMEOUT_SECS', 300))
         self.interim_result_publish_frequency_secs = float(os.environ.get('INTERIM_RESULT_PUBLISH_FREQUENCY_SECS', 0.064))
         self.temperature = float(os.environ.get('AI_TEMPERATURE', 0.35))
@@ -76,14 +78,17 @@ class ChatConfig:
     def __contains__(self, name:str):
         return name in self.__dict__ or name in self.extra
 
+    def __setitem__(self, key:str, value:any):
+        self.__dict__[key] = value    
+
     def get(self, key:str, default_val:any = None) -> any:
         if key in self: 
             return self[key]
         return default_val
 
-    def load(name:str, raise_if_not_found:bool = True) -> 'ChatConfig':
+    def load(name:str|dict, raise_if_not_found:bool = False) -> 'ChatConfig':
         from aiproxy.utils.config import load_named_config
-        config_item = load_named_config(name, raise_if_not_found)
+        config_item = name if type(name) is dict else load_named_config(name, raise_if_not_found)
 
         config = ChatConfig(config_item.get("name", name) if config_item is not None else name)
         
@@ -100,6 +105,7 @@ class ChatConfig:
             "assistant_name": (str, ["oai-assistant", "assistant-name", "assistant"]),
             "assistant_id": (str, ["oai-assistant-id", "assistant-id", "assistantid"]),
             "system_prompt": (str, ["system-prompt", "ai-prompt"]),
+            "use_functions": (bool, ["use-functions", "ai-use-functions"]),
             "timeout_secs": (int, ["timeout", "timeout-secs", "ai-timeout"]),
             "interim_result_publish_frequency_secs": (float, [ "publish-frequency", "interim-result-publish-frequency", "interim-result-publish-frequency-secs"]),
             "temperature": (float, ["temperature", "ai-temperature"]),
@@ -142,10 +148,9 @@ class ChatConfig:
                     setattr(config, config_attr, val)
                     break
         
-        ## Load any other fields that weren't collected so far, and put them into extra
+        ## Load any other fields that weren't collected so far
         for k, v in config_item.items():
             if k not in collected_keys: 
-                config.extra[k] = v
-        
+                setattr(config, k, v)
         
         return config

@@ -19,6 +19,8 @@ class AbstractProxy:
             config = 'default-' + str(type(self)).lower()
         if type(config) is str:
             config = ChatConfig.load(config, False)
+        if type(config) is dict: 
+            config = ChatConfig.load(config)
         self._config = config
         self._client = AzureOpenAI(
             azure_endpoint = self._build_base_url(False), 

@@ -38,9 +38,14 @@ def get_azure_search_client(config_name:str = None) -> tuple[SearchClient, Azure
 
 
 def encode_query(query:str, embedding_model:str = None)->list[float]:
-    from proxy.proxy_registry import GLOBAL_PROXIES_REGISTRY
-    from proxy.embedding_proxy import EmbeddingProxy
-    encoder = GLOBAL_PROXIES_REGISTRY[EmbeddingProxy]
+    from aiproxy.proxy.proxy_registry import GLOBAL_PROXIES_REGISTRY
+    from aiproxy.proxy.embedding_proxy import EmbeddingProxy
+    from aiproxy.data import ChatConfig
+    encoder = GLOBAL_PROXIES_REGISTRY.load_proxy(ChatConfig.load({
+        'ai-model': embedding_model, 
+        'type': 'embedding', 
+        'name': 'search-embedding'
+    }, False), EmbeddingProxy)
     if encoder is None: return None
     if type(encoder) is not EmbeddingProxy: return None
     return encoder.get_embeddings(query, embedding_model)

@@ -2,7 +2,7 @@ from ..proxy import AbstractProxy, GLOBAL_PROXIES_REGISTRY
 
 
 def orchestrator_factory(config: dict, **kwargs) -> AbstractProxy:
-    name = config.get("name", None)
+    name = config["name"] or config['orchestrator'] or config['orchestrator-name']
     if name is None: 
         raise AssertionError("Orchestrator name not specified in config, this is a mandatory field")
     
@@ -11,6 +11,9 @@ def orchestrator_factory(config: dict, **kwargs) -> AbstractProxy:
     if orchestrator_type == "agentselect" or orchestrator_type == "agent-select" or orchestrator_type == "agentselectorchestrator":
         from .agent_select_orchestrator import AgentSelectOrchestrator
         return GLOBAL_PROXIES_REGISTRY.load_proxy(config, AgentSelectOrchestrator, **kwargs)
+    elif orchestrator_type == "step" or orchestrator_type == "steporchestrator" or orchestrator_type == "step-plan" or orchestrator_type == "stepplanorchestrator":
+        from .step_plan_orchestrator import StepPlanOrchestrator
+        return GLOBAL_PROXIES_REGISTRY.load_proxy(config, StepPlanOrchestrator, **kwargs)
     elif orchestrator_type == "multiagent" or orchestrator_type == "multi-agent" or orchestrator_type == "multiagentorchestrator":
         from .multi_agent_orchestrator import MultiAgentOrchestrator
         return GLOBAL_PROXIES_REGISTRY.load_proxy(config, MultiAgentOrchestrator, **kwargs)

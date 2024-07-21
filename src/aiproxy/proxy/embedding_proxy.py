@@ -9,7 +9,7 @@ DEFAULT_EMBEDDING_MODEL = os.getenv("DEFAULT_EMBEDDING_MODEL", "text-embedding-a
 
 class EmbeddingProxy(AbstractProxy):
     def __init__(self, config:ChatConfig|str) -> None:
-        super().__init__(config)
+        super().__init__(config or 'default-embedding')
         self._model = config.oai_model or DEFAULT_EMBEDDING_MODEL
         
     def get_embeddings(self, message:str, override_model:str = None) -> list[float]:

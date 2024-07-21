@@ -1,6 +1,6 @@
 import inspect  
 from inspect import Parameter
-from typing import Callable
+from typing import Callable, Tuple
 
 from openai.types.chat import ChatCompletionToolParam
 from openai.types.shared_params import FunctionDefinition
@@ -13,6 +13,7 @@ class FunctionDef:
     func:Callable
     tool_param:ChatCompletionToolParam
     arg_defaults:dict[str,any]
+    ai_args:dict[str, Tuple[str, str]]
     args:dict[str, Parameter]
 
     def __init__(self, name:str, description:str, func:Callable, aliases:list[str] = None, arg_defaults:dict[str,any] = None):
@@ -23,12 +24,13 @@ class FunctionDef:
         self.base_func_name = getattr(func, '__name__', name)
         self.arg_defaults = arg_defaults or {}
         self.args = {}
+        self.ai_args = {}
         self.tool_param = self._generate_tool_param(arg_defaults)
 
     def _params_to_skip(self) -> list[str]:
-        return [ "self", "context", "metadata" ]
+        return [ "self", "context", "metadata", "plan", "config", "args", "kwargs", "kwargs" ]
     
-    def _generate_tool_param(self, arg_defaults:dict[str,any] = None) -> ChatCompletionToolParam: 
+    def _generate_tool_param(self, arg_defaults:dict[str,any] = None) -> ChatCompletionToolParam:
         tool_param = ChatCompletionToolParam()
         tool_param['type'] = "function"
         tool_param['function'] = FunctionDefinition()
@@ -100,6 +102,7 @@ class FunctionDef:
                     "type": item_param_type
                 }
 
+            self.ai_args[param_name] = (param_type, desc)
 
             ## If no default value is provided, then the parameter is required
             if param.default == Parameter.empty:

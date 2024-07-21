@@ -247,6 +247,14 @@ def merge_lists(
     result.extend(list2)
     return result
 
+def get_dict_val(key:Annotated[str, "The name of the key to retrieve the value of."], obj:dict = None) -> str:
+        if obj is None: return ""
+        val = obj.get(key, "")
+        if val is None: return ""
+        if type(val) in [str,int,float,bool]: return val
+        if type(val) is list: 
+            return ",".join([ str(item) if type(item) in [str,int,float,bool] else obj_to_json(item) for item in val])
+        return obj_to_json(val)
 
 def register_functions():
     from .function_registry import GLOBAL_FUNCTIONS_REGISTRY
@@ -257,3 +265,4 @@ def register_functions():
     GLOBAL_FUNCTIONS_REGISTRY.register_base_function("json_to_obj", "Convert a json string to an object, if possible, otherwise return None", json_to_obj)
     GLOBAL_FUNCTIONS_REGISTRY.register_base_function("random_choice", "Randomly choose an item from a list of items", random_choice)
     GLOBAL_FUNCTIONS_REGISTRY.register_base_function("merge_lists", "Concatenate two lists together into a single list.", merge_lists)
+    GLOBAL_FUNCTIONS_REGISTRY.register_base_function("get_dict_val", "Get the value of a key from a dictionary. If the value is an object or dictionary, the object will be returned as a JSON string", get_dict_val)
