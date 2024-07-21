@@ -9,16 +9,23 @@ from aiproxy.streaming import StreamWriter
 def save_family_note(note:Annotated[str, "The note to save"], family:Annotated[str, "The family to save the note for"]) -> str:
     print(f"Saved note '{note}' for family '{family}'")
     return "Done"
-
-def recipe_search(
-        criteria:Annotated[str, "The search criteria in Lucene format. So, for example, if you want to exclude something from the search results, then prefix it with a '-' symbol, eg. '-mushroom' to exclude results that contain the word 'mushroom'"], 
-        num_results:Annotated[int, "The number of search results to return"] = 10) -> list[str]:
-    from aiproxy.functions.azure_search import search
-    return search(criteria, numResults=num_results or 10, complexQuery=True, source='recipe-index')
-
 GLOBAL_FUNCTIONS_REGISTRY.register_base_function('save-family-note', "Save a note for a family", save_family_note, { 'family': 'The Dudes'} )
-GLOBAL_FUNCTIONS_REGISTRY.register_base_function('recipe-search', "Search for a recipe", recipe_search, { 'num_results': 10 } )
 
+# def recipe_search(
+#         criteria:Annotated[str, "The search criteria in Lucene format. So, for example, if you want to exclude something from the search results, then prefix it with a '-' symbol, eg. '-mushroom' to exclude results that contain the word 'mushroom'"], 
+#         num_results:Annotated[int, "The number of search results to return"] = 10) -> list[str]:
+#     from aiproxy.functions.azure_search import search
+#     return search(criteria, numResults=num_results or 10, complexQuery=True, source='recipe-index')
+# GLOBAL_FUNCTIONS_REGISTRY.register_base_function('recipe-search', "Search for a recipe", recipe_search, { 'num_results': 10 } )
+
+GLOBAL_FUNCTIONS_REGISTRY.register_function_alias('search', 
+                                                  alias='recipe-search', 
+                                                  description="The search criteria in Lucene format. So, for example, if you want to exclude something from the search results, then prefix it with a '-' symbol, eg. '-mushroom' to exclude results that contain the word 'mushroom'", 
+                                                  arg_defaults={ 
+                                                      'source':'recipe-index',
+                                                      'complexQuery':True
+                                                    } 
+                                                )
 def run(streamer:StreamWriter):
     print("Running a test using the Step Plan Orchestrator")
 

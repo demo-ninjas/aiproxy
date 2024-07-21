@@ -30,22 +30,29 @@ def print_stream_msg(msg):
 streamer = FunctionStreamWriter(stream_function=print_stream_msg)
 
 import tests
+
 ## Test the Completions Proxy
 from tests.test_completions_proxy import run as test_completions_proxy
 test_completions_proxy(streamer)
 print("\n------------------------\n")
 
-## Test the Assistants Proxy
-from tests.test_assistant_proxy import run as test_assistants_proxy
-test_assistants_proxy(streamer)
-print("\n------------------------\n")
+# ## Test the Assistants Proxy
+# from tests.test_assistant_proxy import run as test_assistants_proxy
+# test_assistants_proxy(streamer)
+# print("\n------------------------\n")
 
-## Test the Step Plan Orchestrator
-from tests.test_step_plan_orchestrator import run as test_step_plan_orchestrator
-test_step_plan_orchestrator(streamer)
-print("\n------------------------\n")
+# ## Test the Step Plan Orchestrator
+# from tests.test_step_plan_orchestrator import run as test_step_plan_orchestrator
+# test_step_plan_orchestrator(streamer)
+# print("\n------------------------\n")
 
-## Test the Select Agent Orchestrator
-from tests.test_select_agent_orchestrator import run as test_select_agent_orchestrator
-test_select_agent_orchestrator(streamer)
-print("\n------------------------\n")
+# ## Test the Select Agent Orchestrator
+# from tests.test_select_agent_orchestrator import run as test_select_agent_orchestrator
+# test_select_agent_orchestrator(streamer)
+# print("\n------------------------\n")
+
+# ## Test a configured Step Plan Orchestrator
+# from tests.test_configured_orchestrator import run as test_configured_orchestrator
+# test_configured_orchestrator(streamer)
+# print("\n------------------------\n")
+

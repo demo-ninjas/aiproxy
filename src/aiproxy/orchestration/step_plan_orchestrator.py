@@ -188,6 +188,9 @@ class StepPlanOrchestrator(AbstractProxy):
         #     ** <Argument1 Name> - [<Argument1 Type>] <Argument1 Description>
         #     ** <Argument2 Name> - [<Argument2 Type>] <Argument2 Description>
 
+        if self._function_list is None: 
+            self._function_list = GLOBAL_FUNCTIONS_REGISTRY.get_all_function_names()
+            
         available_functions = ''
         for function in self._function_list:
             function_def = GLOBAL_FUNCTIONS_REGISTRY[function]

@@ -8,7 +8,6 @@ from openai.types.shared_params import FunctionDefinition
 class FunctionDef: 
     name:str
     base_func_name:str
-    aliases:list[str]
     description:str
     func:Callable
     tool_param:ChatCompletionToolParam
@@ -16,11 +15,10 @@ class FunctionDef:
     ai_args:dict[str, Tuple[str, str]]
     args:dict[str, Parameter]
 
-    def __init__(self, name:str, description:str, func:Callable, aliases:list[str] = None, arg_defaults:dict[str,any] = None):
+    def __init__(self, name:str, description:str, func:Callable, arg_defaults:dict[str,any] = None):
         self.name = name
         self.description = description
         self.func = func
-        self.aliases = aliases or []
         self.base_func_name = getattr(func, '__name__', name)
         self.arg_defaults = arg_defaults or {}
         self.args = {}

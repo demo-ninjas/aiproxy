@@ -2,9 +2,6 @@ import inspect
 from inspect import Parameter
 from typing import Callable
 
-from openai.types.chat import ChatCompletionToolParam
-from openai.types.shared_params import FunctionDefinition
-
 from aiproxy.interfaces import FunctionDef
 
 class FunctionRegistry: 
@@ -15,15 +12,12 @@ class FunctionRegistry:
         self.functions = dict()
         self.aliases = dict()
 
-    def register_base_function(self, name:str, description:str, func:Callable, arg_defaults:dict[str,any] = None, aliases:list[str] = None):
+    def register_base_function(self, name:str, description:str, func:Callable, arg_defaults:dict[str,any] = None):
         if not callable(func):
             raise ValueError(f"Function {func} is not callable")
-        fdef = FunctionDef(name, description, func=func, arg_defaults=arg_defaults, aliases=aliases)
+        fdef = FunctionDef(name, description, func=func, arg_defaults=arg_defaults)
         self.functions[name] = fdef
-        if aliases is not None:
-            for alias in aliases:
-                self.aliases[alias] = fdef
-
+        
     def unregister_function(self, name:str, and_aliases:bool = True):
         if name in self.functions:
             if and_aliases:
@@ -34,12 +28,25 @@ class FunctionRegistry:
         elif name in self.aliases:  ## Unregister the alias
             del self.aliases[name]
 
-    def register_function_alias(self, function_name:str, alias:str):
+    def register_function_alias(self, function_name:str, alias:str, description:str = None, arg_defaults:dict[str,any] = None):
         if function_name not in self.functions:
-            raise ValueError(f"Function {function_name} is not registered")
-        self.functions[function_name].aliases.append(alias)
-        self.aliases[alias] = self.functions[function_name]
+            raise ValueError(f"Function '{function_name}' is not registered, cannot register alias '{alias}' to it, you must register the base function before registering aliases to it")
+        if alias in self.aliases:
+            if self.aliases[alias].base_func_name != function_name:
+                raise ValueError(f"Alias '{alias}' is already registered to a different base function, please choose a different alias name")
+            return ## Alais already registered, no need to re-register it (This is a small risk, as the presented alias def could be different to the existing, but we'll take that risk for now)
+        
+        base_def = self.functions[function_name]
+        args = base_def.arg_defaults.copy()
+        if args is not None and arg_defaults is not None:
+            args.update(arg_defaults)
+        if args is None and arg_defaults is not None: 
+            args = arg_defaults
+        self.aliases[alias] = FunctionDef(alias, description or base_def.description, func=base_def.func, arg_defaults=args)
 
+    def get_all_function_names(self) -> list[str]:
+        return list(self.functions.keys()) + list(self.aliases.keys())
+    
     def generate_tools_definition(self, function_filter:Callable[[str, str], bool] = None) -> list[dict]:
         global GLOBAL_FUNCTIONS_FILTER
 
@@ -54,18 +61,18 @@ class FunctionRegistry:
                 continue
 
             tools.append(func_def.tool_param)
-            for alias in func_def.aliases:
-                 ## Skip functions that don't match the global functions filter
-                if not GLOBAL_FUNCTIONS_FILTER(alias, func_def.base_func_name):
-                    continue
 
-                ## Skip functions that don't match the filter
-                if function_filter is not None and not function_filter(alias, func_def.base_func_name):
-                    continue
-                
-                tool = func_def.tool_param.copy()
-                tool['function']['name'] = alias
-                tools.append(tool)
+        ## Add the aliases to the tools list
+        for func_def in self.aliases.values():
+             ## Skip functions that don't match the global functions filter
+            if not GLOBAL_FUNCTIONS_FILTER(func_def.name, func_def.base_func_name):
+                continue
+
+            ## Skip functions that don't match the filter
+            if function_filter is not None and not function_filter(func_def.name, func_def.base_func_name):
+                continue
+
+            tools.append(func_def.tool_param)
 
         return tools
 

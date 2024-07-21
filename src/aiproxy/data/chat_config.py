@@ -148,6 +148,29 @@ class ChatConfig:
                     setattr(config, config_attr, val)
                     break
         
+        ## Register Function Aliases
+        if "function-aliases" in config_item:
+            from aiproxy.functions import GLOBAL_FUNCTIONS_REGISTRY
+            alias_configs = config_item["function-aliases"]
+            if type(alias_configs) is list: 
+                for alias_config in alias_configs:
+                    func_name = alias_config.get("function", None)
+                    alias_name = alias_config.get("alias",None)
+                    if func_name is None or alias_name is None: 
+                        raise ValueError("Function name and alias name are required for function alias registrations")
+                    alias_desc = alias_config.get("description", None)
+                    alias_args = alias_config.get("args", None)
+                    GLOBAL_FUNCTIONS_REGISTRY.register_function_alias(func_name, alias_name, alias_desc, alias_args)
+            else: 
+                for alias_name, a_conf in alias_configs.items():
+                    func_name = a_conf.get("function", None)
+                    alias_name = alias_config.get("alias",alias_name)
+                    if func_name is None or alias_name is None: 
+                        raise ValueError("Function name and alias name are required for function alias registrations")
+                    alias_desc = alias_config.get("description", None)
+                    alias_args = alias_config.get("args", None)
+                    GLOBAL_FUNCTIONS_REGISTRY.register_function_alias(func_name, alias_name, alias_desc, alias_args)
+
         ## Load any other fields that weren't collected so far
         for k, v in config_item.items():
             if k not in collected_keys: 
