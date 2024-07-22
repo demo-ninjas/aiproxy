@@ -53,7 +53,7 @@ class MultiAgentOrchestrator(AbstractProxy):
         self._raise_on_timeout = self._config.get("raise-on-timeout", False)
 
     def _load_interpreter(self):
-        interp_config = self._config.get("interpreter") or self._config.get("interp") or 'default'
+        interp_config = self._config.get("interpreter") or self._config.get("interp") or None
         self._interpreter = GLOBAL_PROXIES_REGISTRY.load_proxy(interp_config, CompletionsProxy)
         self._interp_template = self._config.get("interpreter-prompt") or self._config.get('interp-prompt') or self._config.get("system-message", None) or _DEFAULT_INTERPETER_PROMPT
         

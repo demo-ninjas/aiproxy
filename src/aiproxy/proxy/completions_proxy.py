@@ -65,7 +65,9 @@ class CompletionsProxy(AbstractProxy):
             remaining_secs = timeout_secs if timeout_secs > 0 else self._config.timeout_secs
             model = override_model or self._config.oai_model
             using_functions = use_functions if use_functions is not None else self._config.use_functions
-            tool_list = GLOBAL_FUNCTIONS_REGISTRY.generate_tools_definition(function_filter) if using_functions else None
+            filter_for_tool_calls = function_filter or context.function_filter
+
+            tool_list = GLOBAL_FUNCTIONS_REGISTRY.generate_tools_definition(filter_for_tool_calls) if using_functions else None
             chunk_data = ChunkData() if context.has_stream() else None
             while more_steps and step_count < self._config.max_steps:
                 if remaining_secs <= 0:

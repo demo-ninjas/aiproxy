@@ -6,7 +6,7 @@ from aiproxy.utils.func import invoke_registered_function, FAILED_INVOKE_RESPONS
 
 from ..agent import Agent
 
-class CompletionsAgent(Agent):
+class FunctionAgent(Agent):
     _function_name:str
     _predefined_args:dict[str,any]
     _arg_preprocessor:Callable[[dict[str,any]], dict[str,any]] = None

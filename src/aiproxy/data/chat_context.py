@@ -9,25 +9,28 @@ class ChatContext:
     stream_writer:StreamWriter
     history_provider:HistoryProvider
     function_args_preprocessor:Callable[[dict, FunctionDef, 'ChatContext'], dict]
-    
+    function_filter:Callable[[str,str], bool] = None
 
     def __init__(self, 
                  thread_id:str = None, 
                  history_provider:HistoryProvider = None, 
                  stream:StreamWriter = None, 
-                 function_args_preprocessor:Callable[[dict, FunctionDef, 'ChatContext'], dict] = None
+                 function_args_preprocessor:Callable[[dict, FunctionDef, 'ChatContext'], dict] = None, 
+                 function_filter:Callable[[str,str], bool] = None
                  ):
         self.history = None
         self.thread_id = thread_id
         self.history_provider = history_provider or NoOpHistoryProvider()
         self.stream_writer = stream
         self.function_args_preprocessor = function_args_preprocessor
+        self.function_filter = function_filter
 
     def clone_for_single_shot(self) -> 'ChatContext':
         return ChatContext(
             history_provider=None,  ## Don't need to clone the history provider 
             stream=None,            ## No Streamingn for this context
-            function_args_preprocessor=self.function_args_preprocessor
+            function_args_preprocessor=self.function_args_preprocessor,
+            function_filter=self.function_filter
         )
     
     def clone_for_thread_isolation(self, thread_id_to_use:str = None) -> 'ChatContext':
@@ -35,6 +38,7 @@ class ChatContext:
             stream=None,            ## No Streaming for this context
             history_provider=self.history_provider,
             function_args_preprocessor=self.function_args_preprocessor,
+            function_filter=self.function_filter,
             thread_id=thread_id_to_use
         )
 

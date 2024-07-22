@@ -1,13 +1,25 @@
 from ..proxy import AbstractProxy, GLOBAL_PROXIES_REGISTRY
+from ..data import ChatConfig
+from .agent import Agent
 
+def orchestrator_factory(config: dict|str|ChatConfig, **kwargs) -> AbstractProxy:
+    name = None
+    if type(config) is str:
+        name = config
+        config = ChatConfig.load(name)
+    elif type(config) is dict:
+        name = config["name"] or config['orchestrator'] or config['orchestrator-name']
+        config = ChatConfig.load(config)
+    elif type(config) is ChatConfig:
+        name = config["name"] or config['orchestrator'] or config['orchestrator-name']
+    else:
+        raise ValueError("Unknown config type provided, you must provide a ChatConfig, a config dictionary, or a config name")
 
-def orchestrator_factory(config: dict, **kwargs) -> AbstractProxy:
-    name = config["name"] or config['orchestrator'] or config['orchestrator-name']
     if name is None: 
-        raise AssertionError("Orchestrator name not specified in config, this is a mandatory field")
-    
+        raise AssertionError("Orchestrator name not specified, this is a mandatory field")
+
     ## Grab the orchestrator type from the config (or default to the basic CompletionsProxy)
-    orchestrator_type = config.get("type", "completion").lower()
+    orchestrator_type = config.get("type", name).lower()
     if orchestrator_type == "agentselect" or orchestrator_type == "agent-select" or orchestrator_type == "agentselectorchestrator":
         from .agent_select_orchestrator import AgentSelectOrchestrator
         return GLOBAL_PROXIES_REGISTRY.load_proxy(config, AgentSelectOrchestrator, **kwargs)

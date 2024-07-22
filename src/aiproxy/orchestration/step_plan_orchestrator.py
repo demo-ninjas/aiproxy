@@ -174,7 +174,8 @@ class StepPlanOrchestrator(AbstractProxy):
         self._rules = self._config['rules'] or ''
         self._function_list = self._config['functions'] or None
         self._functions = self._build_available_functions()
-        self._model = self._config['model'] or None
+        self._planner_model = self._config['planner-model'] or self._config['model'] or None
+        self._responder_model = self._config['responder-model'] or self._config['model'] or None
         self._proxy = GLOBAL_PROXIES_REGISTRY.load_proxy(self._config['proxy'], CompletionsProxy)
         self._include_step_names_in_result = self._config.get('include-step-names-in-result', True)
 
@@ -224,7 +225,7 @@ class StepPlanOrchestrator(AbstractProxy):
             user_prompt=message,
             recent_conversation=recent_conversation
         )
-        plan_result = self._proxy.send_message(prompt, planner_ctx, self._model, use_functions=False)
+        plan_result = self._proxy.send_message(prompt, planner_ctx, self._planner_model, use_functions=False)
         plan_str = plan_result.message
         plan_arr = plan_str.split("\n")
         steps = []
@@ -447,7 +448,7 @@ class StepPlanOrchestrator(AbstractProxy):
             return args
         resp_context.function_args_preprocessor = args_preprocessor
 
-        result = self._proxy.send_message(prompt, resp_context, self._model, use_functions=True, function_filter=lambda x,y: x in ['get_dict_val', 'filter_list', 'get_obj_field', 'random_choice', 'merge_lists', 'calculate'], use_completions_data_source_extensions=False)
+        result = self._proxy.send_message(prompt, resp_context, self._responder_model, use_functions=True, function_filter=lambda x,y: x in ['get_dict_val', 'filter_list', 'get_obj_field', 'random_choice', 'merge_lists', 'calculate'], use_completions_data_source_extensions=False)
 
         if result.filtered:
             return f"Sorry, I can't respond to that."
