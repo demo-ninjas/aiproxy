@@ -36,6 +36,7 @@ class CompletionsProxy(AbstractProxy):
     def _parse_prompt_template(self, prompt:str, context:ChatContext) -> str:
         ## Extract each key from the prompt (wrapped in squiggly brackets) and then find the matching value in metadata or config and replace the key with the value
         ## If the key is not found, then leave the key in the string
+        if prompt is None: return None
         from_pos = 0
         start = prompt.find("{", from_pos)
         while start >= 0:
