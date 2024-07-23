@@ -25,4 +25,4 @@ class CosmosHistoryProvider(HistoryProvider):
         }
         if metadata is not None:
             item['metadata'] = metadata
-        upsert_item(item, ttl=ttl, source=self._config_name)
+        upsert_item(item, source=self._config_name)
