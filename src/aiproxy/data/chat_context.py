@@ -37,7 +37,7 @@ class ChatContext:
             stream=None,            ## No Streamingn for this context
             function_args_preprocessor=self.function_args_preprocessor,
             function_filter=self.function_filter,
-            metadata=self.metadata.copy(), 
+            metadata=self.metadata.copy() if self.metadata is not None else None, 
             metadata_transient_keys=self.metadata_transient_keys, 
         )
     
@@ -48,7 +48,7 @@ class ChatContext:
             function_args_preprocessor=self.function_args_preprocessor,
             function_filter=self.function_filter,
             thread_id=thread_id_to_use,
-            metadata=self.metadata.copy(), 
+            metadata=self.metadata.copy() if self.metadata is not None else None, 
             metadata_transient_keys=self.metadata_transient_keys, 
         )
 
