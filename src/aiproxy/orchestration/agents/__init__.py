@@ -49,6 +49,9 @@ def agent_factory(config: dict|str|ChatConfig, **kwargs) -> Agent:
     elif agent_type == 'analyse-image' or agent_type == 'analyse-image-agent' or agent_type == 'image':
         from .analyse_image_agent import AnalyseImageAgent
         agent = AnalyseImageAgent(name, description, config, **kwargs)
+    elif agent_type == 'orchestrator-agent' or agent_type == 'orchestrator-proxy' or agent_type == 'orchestratoragent' or agent_type == 'orchestrator-proxy-agent':
+        from .orchestrator_proxt_agent import OrchestratorProxyAgent
+        agent = OrchestratorProxyAgent(name, description, config, **kwargs)
     else:
         raise ValueError(f"Unknown agent type: {agent_type}")
     
