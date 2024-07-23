@@ -66,3 +66,53 @@ class AbstractProxy:
 
     def _invoke_function_tool(self, function_name:str, function_args:str|dict, context:ChatContext) -> str:
         return invoke_registered_function(function_name, function_args, context, sys_objects={ 'config': self._config, 'proxy': self })
+    
+    def _parse_response(self, response:ChatResponse, context:ChatContext): 
+        if response is None or response.message is None or len(response.message) == 0:
+            return response
+        
+        if self._config.parse_ai_response:
+            try: 
+                msg = response.message.strip()
+                response_data = None
+                ## Handle JSON responses + JSON in Markdown code blocks
+                if msg[0] == '{' and msg[-1] == '}':
+                    response_data = json.loads(response.message)
+                elif msg.startswith('```') and msg.endswith('```'):
+                    msg = msg[3:-3].strip()
+                    squiggly_pos = msg.find('{')
+                    if squiggly_pos > 0: 
+                        response_data = json.loads(msg[squiggly_pos:])
+                
+                if response_data is not None and type(response_data) is dict:
+                    response.message = response_data.get('message') or response_data.get('response') or response.message
+                    for key, val in response_data.items():
+                        if key != 'message' and key != 'response':
+                            add_to_response = True
+                            add_to_context = True
+                            persist_to_history = self._config.persist_parsed_ai_response_metadata
+                            if key[0] == '_': 
+                                u2 = key.find('_', 1)
+                                key_args = key[1:u2]
+                                key = key[u2+1:]
+                                pos = 0
+                                while pos < len(key_args): 
+                                    arg_indicator = key_args[pos:pos+1]
+                                    arg_target = key_args[pos+1:pos+2].upper()
+                                    if arg_target == 'R':
+                                        add_to_response = True if arg_indicator == '+' else False
+                                    elif arg_target == 'C':
+                                        add_to_context = True if arg_indicator == '+' else False
+                                    elif arg_target == 'H':
+                                        persist_to_history = True if arg_indicator == '+' else False
+                                    pos += 2
+                                
+                            if add_to_response:
+                                response.add_metadata(key, val)
+                            if add_to_context:
+                                context.set_metadata(key, val, persist_to_history)
+            except: 
+                pass
+
+        return response
+    

@@ -193,6 +193,10 @@ class CompletionsProxy(AbstractProxy):
                 ## Update the remaining time
                 remaining_secs -= time() - start
                 
+            
+            ## Now, parse the response and update the context if needed
+            self._parse_response(response, context)
+
             ## Request the context to save the history (with the updated messages list)
             context.push_stream_update("Documenting our conversation", PROGRESS_UPDATE_MESSAGE)
             context.save_history()

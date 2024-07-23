@@ -31,6 +31,9 @@ class ChatConfig:
     data_source_config:str = None
     data_source_api_version:str = None
 
+    parse_ai_response:bool = False
+    persist_parsed_ai_response_metadata:bool = True
+
     prompt_vars:dict[str, any]
 
     def __init__(self, name:str):
@@ -57,6 +60,8 @@ class ChatConfig:
         self.max_history = int(os.environ.get('AI_MAX_HISTORY', 25))
         self.top_p = float(os.environ.get('AI_TOP_P', 1.0))
         self.max_tokens = int(os.environ.get('AI_MAX_TOKENS', 2500))
+        self.parse_ai_response = os.environ.get('AI_PARSE_RESPONSE', 'false').lower() in ['true', '1', 'y', 't', 'on', 'yes', 'enabled']
+        self.persist_parsed_ai_response_metadata = os.environ.get('AI_PERSIST_PARSED_RESPONSE_METADATA', 'true').lower() in ['true', '1', 'y', 't', 'on', 'yes', 'enabled']
         self.prompt_vars = {}
 
     def clone(self) -> 'ChatConfig':
@@ -121,6 +126,8 @@ class ChatConfig:
             "max_history": (int, ["max-history", "ai-max-history"]),
             "top_p": (float, ["top-p", "top_p"]),
             "max_tokens": (int, ["max-tokens", "max-tokens-generated"]),
+            "parse_ai_response": (bool, ["parse-ai-response", "parse-response", 'ai-response-is-message-and-metadata']),
+            "persist_parsed_ai_response_metadata": (bool, ["persist-parsed-ai-response-metadata", "persist-parsed-response-metadata", "ai-persist-parsed-response-metadata"])
         }
 
 

@@ -222,6 +222,8 @@ A config can contain any keys + values, but there are a number of core config va
 * `prompt-vars` - A dictionary of variables that can be injected into a system (or user) prompt when using a prompt template
 * `system-prompt-is-template` - A boolean flag indicating whether or not to treat the system prompt as a template
 * `user-prompt-is-template` - A  boolean flag indicating whether or not to treat the user prompt as a template (only set this if you have control over the user prompt and are completely sure of the safety of enabling this)
+* `parse-ai-response` - A boolean flag indicating whether or not to treat the response from the AI model as a JSON object that contains both the actual response message and additional metadata
+* `persist-parsed-ai-response-metadata` - (if AI responses are being parsed) A boolean flag indicating whether or not the parsed response metadata should by default also be persisted into the conversation history
 
 Each of these settings will also be set to a default value derived from the environment or a sensible value.
 
@@ -408,6 +410,61 @@ Here's an example of a config that sets a few common config options:
 }
 ```
 
+### Parsing AI Responses into custom ChatResponses
+
+Sometimes it can be useful for the AI to respond with a JSON object that contains both the response message and additional metadata (which might be handled differently to the response message).
+
+To facilitate this, you can set the `parse-ai-response` config field to `true` - which will trigger the response parsing.
+
+When  theAI response is parsed, if the response message is a valid JSON object, then the response message will be parsed into a dictionary, and then that dictionary will be processed to extract the response message + associated metadata.
+
+The final response message text is extraccted from the `message` or `response` field of the dictionary, with all other fields treated as metadata.
+
+For the metadata fields, you can add directives into the start of the field name to indicate how the metadata should be handled.
+
+By default, the metadata fields will be added as metadata into both the `ChatResponse` and also the `ChatContext` (And therefore also persisted into the conversation history [Unless the `persist-parsed-ai-response-metadata` config value is set to `false`]).
+
+To change this behaviour on a field by field basis, you can add directives to the beginning of the field name (wrapped by `_` characters).
+
+A directive is a `+` or `-` followed by a `target`, of which there are three targets: 
+
+* `R` - The ChatResponse
+* `C` - The ChatContext
+* `H` - The conversation History
+
+A `+` indicates that the metadata should be sent to that target, and a `-` indicates that it should not.
+
+Eg. The following field name: `_+R-H_my-field` - indicates that the metadata should be added to the `ChatResponse` and the `ChatContext` but not persisted to the Conversation History.
+
+For example, given the following response message from the AI:
+```JSON
+{
+    "response": "Certainly, I have updated your travel plan to include a 3 night stay at the Hotel Grande de Paris, checking in on Monday 3rd and checking out on Thursday 6th.", 
+    "hotel-confirmation-number": "ABC123", 
+    "trip-reference": "XYZ123", 
+    "_-C+R_speech": "Done, you are booked for 3 nights at the Hotel Grande de Paris from Monday"
+}
+```
+
+Then, the ChatResponse message will be set to: `Certainly, I have updated your travel plan to include a 3 night stay at the Hotel Grande de Paris, checking in on Monday 3rd and checking out on Thursday 6th.`
+The ChatResponse metadata will be set to: 
+```JSON
+{
+    "hotel-confirmation-number": "ABC123", 
+    "trip-reference": "XYZ123", 
+    "speech": "Done, you are booked for 3 nights at the Hotel Grande de Paris from Monday"
+}
+```
+And the ChatContext metadata will be set to: 
+```JSON
+{
+    "hotel-confirmation-number": "ABC123", 
+    "trip-reference": "XYZ123"
+}
+```
+
+[Note: The "speech" is automatically not persisted to the conversation history because it is not added to the ChatContext]
+
 
 ## Available Proxies
 
@@ -508,7 +565,6 @@ eg. The following config defines an Agent Select Orchestrator with three agents,
             "system-message": "You are a highly distinguished and experienced History Professor. You are an expert in the field of history and can answer any question related to history.",
         }
     ],
-    ...
 }
 ```
 

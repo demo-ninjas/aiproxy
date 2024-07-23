@@ -71,6 +71,9 @@ class AssistantProxy(AbstractProxy):
 
             outcome = self.assistant_messages_to_chat_responses(res, context)
             for res in outcome:
+                ## Now, parse the response and update the context if needed
+                self._parse_response(res, context)
+
                 context.add_message_to_history(ChatMessage(message=res.message, role="assistant", id=res.id, assistant_id=res.assistant_id))
             return outcome            
         
