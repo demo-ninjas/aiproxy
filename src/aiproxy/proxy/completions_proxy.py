@@ -33,6 +33,62 @@ class CompletionsProxy(AbstractProxy):
         ## Return Thread ID
         return thread_id
     
+    def _parse_prompt_template(self, prompt:str, context:ChatContext) -> str:
+        ## Extract each key from the prompt (wrapped in squiggly brackets) and then find the matching value in metadata or config and replace the key with the value
+        ## If the key is not found, then leave the key in the string
+        from_pos = 0
+        start = prompt.find("{", from_pos)
+        while start >= 0:
+            if prompt[start:start+2] == "{{":    ## Ignore any double squiggly brackets
+                from_pos = start + 2
+                start = prompt.find("{", from_pos)
+                continue
+
+            
+            end = prompt.find("}", start)
+            if end < 0: break
+
+            key = prompt[start+1:end]
+
+            if key == "date": 
+                from datetime import datetime
+                value = datetime.now().strftime("%Y-%m-%d")
+            elif key == "time": 
+                from datetime import datetime
+                value = datetime.now().strftime("%H:%M:%S")
+            elif key == "datetime":
+                from datetime import datetime
+                value = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            elif key == "utcdate": 
+                from datetime import datetime, tzinfo                
+                value = datetime.now(tz=tzinfo.utcoffset).strftime("%Y-%m-%d")
+            elif key == "utctime": 
+                from datetime import datetime, tzinfo                
+                value = datetime.now(tz=tzinfo.utcoffset).strftime("%H:%M:%S")
+            elif key == "utcdatetime": 
+                from datetime import datetime, tzinfo                
+                value = datetime.now(tz=tzinfo.utcoffset).strftime("%Y-%m-%d %H:%M:%S")
+            elif key == "iso8601":
+                from datetime import datetime
+                value = datetime.now().isoformat()
+            elif key.startswith("date-format:"):
+                from datetime import datetime
+                value = datetime.now().strftime(key[12:])
+            else:
+                ## Key - it's either going to be in the context metadata, or a config value
+                value = context.get_metadata(key) or (self._config.prompt_vars.get(key) if self._config.prompt_vars is not None else None)
+
+            ## If the key is not found, then leave it, and move on to the next key
+            if value is None:
+                from_pos = start + 2
+                start = prompt.find("{", from_pos)
+                continue
+
+            ## Replace the key with the value                
+            prompt = prompt[:start] + str(value) + prompt[end+1:]
+            from_pos = start + len(value)
+            start = prompt.find("{", from_pos)
+        return prompt
 
     def send_message(self, 
                      message:str, 
@@ -44,10 +100,20 @@ class CompletionsProxy(AbstractProxy):
                      timeout_secs:int = 0, 
                      use_completions_data_source_extensions:bool = False
                      ) -> ChatResponse:
+        
         ## Add the user message to the thread history
+        system_prompt_to_use = override_system_prompt or self._config.system_prompt
+        if self._config.system_prompt_is_template: 
+            system_prompt_to_use = self._parse_prompt_template(system_prompt_to_use, context)
+        
         context.push_stream_update(SimpleStreamMessage("Recalling our conversation so far", PROGRESS_UPDATE_MESSAGE))
-        thread_id = self._get_or_create_thread(context, override_system_prompt)     ## This will trigger the context to load the history if it hasn't been loaded already...
-        context.add_prompt_to_history(message, "user")
+        thread_id = self._get_or_create_thread(context, system_prompt_to_use)     ## This will trigger the context to load the history if it hasn't been loaded already...
+        if message is not None and len(message) > 0:
+            if self._config.user_prompt_is_template: 
+                message = self._parse_prompt_template(message, context)
+            context.add_prompt_to_history(message, "user")
+        elif len(context.history) == 0:
+            context.add_prompt_to_history(system_prompt_to_use, "system")
         
         ## If the length of the conversation is getting long, summarise the conversation and drop the history
         if len(context.history) >= self._config.max_history:

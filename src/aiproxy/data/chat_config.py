@@ -10,6 +10,9 @@ class ChatConfig:
     oai_model:str = None
 
     system_prompt:str = None
+    system_prompt_is_template:bool = True
+    user_prompt_is_template:bool = False
+
     temperature:float = None
     top_p:float = None
     max_tokens:int = None
@@ -28,7 +31,7 @@ class ChatConfig:
     data_source_config:str = None
     data_source_api_version:str = None
 
-    extra:dict[str, any]
+    prompt_vars:dict[str, any]
 
     def __init__(self, name:str):
         import os
@@ -41,6 +44,8 @@ class ChatConfig:
         self.assistant_name = os.environ.get('OAI_ASSISTANT_NAME', None)
         self.assistant_id = os.environ.get('OAI_ASSISTANT_ID', None)
         self.system_prompt = os.environ.get('OAI_SYSTEM_PROMPT', None)
+        self.system_prompt_is_template = os.environ.get('OAI_SYSTEM_PROMPT_IS_TEMPLATE', 'true').lower() in ['true', '1', 'y', 't', 'on', 'yes', 'enabled']
+        self.user_prompt_is_template = os.environ.get('OAI_USER_PROMPT_IS_TEMPLATE', 'false').lower() in ['true', '1', 'y', 't', 'on', 'yes', 'enabled']
         self.use_functions = os.environ.get('AI_USE_FUNCTIONS', 'true').lower() in ['true', '1', 'y', 't', 'on', 'yes', 'enabled']
         self.timeout_secs = int(os.environ.get('AI_TIMEOUT_SECS', 300))
         self.interim_result_publish_frequency_secs = float(os.environ.get('INTERIM_RESULT_PUBLISH_FREQUENCY_SECS', 0.064))
@@ -52,21 +57,19 @@ class ChatConfig:
         self.max_history = int(os.environ.get('AI_MAX_HISTORY', 25))
         self.top_p = float(os.environ.get('AI_TOP_P', 1.0))
         self.max_tokens = int(os.environ.get('AI_MAX_TOKENS', 2500))
-        self.extra = {}
+        self.prompt_vars = {}
 
     def clone(self) -> 'ChatConfig':
         config = ChatConfig(self.name)
         for k,v in self.__dict__.items():
-            if k != "extra":
-                config[k] = v
-        config.extra = self.extra.copy()
+            config[k] = v
         return config
 
     def __getitem__(self, key:str) -> any:
         if key in self.__dict__: 
             return self.__dict__.get(key)
-        elif key in self.extra: 
-            return self.extra.get(key)
+        elif key in self.prompt_vars: 
+            return self.prompt_vars.get(key)
         else: 
             try: 
                 attr = self.__getattribute__(key)
@@ -76,7 +79,7 @@ class ChatConfig:
         return None
 
     def __contains__(self, name:str):
-        return name in self.__dict__ or name in self.extra
+        return name in self.__dict__ or name in self.prompt_vars
 
     def __setitem__(self, key:str, value:any):
         self.__dict__[key] = value    
@@ -105,6 +108,8 @@ class ChatConfig:
             "assistant_name": (str, ["oai-assistant", "assistant-name", "assistant"]),
             "assistant_id": (str, ["oai-assistant-id", "assistant-id", "assistantid"]),
             "system_prompt": (str, ["system-prompt", "ai-prompt"]),
+            "system_prompt_is_template": (bool, ["system-prompt-is-template", "ai-prompt-is-template"]),
+            "user_prompt_is_template": (bool, ["user-prompt-is-template", "ai-user-prompt-is-template"]),
             "use_functions": (bool, ["use-functions", "ai-use-functions"]),
             "timeout_secs": (int, ["timeout", "timeout-secs", "ai-timeout"]),
             "interim_result_publish_frequency_secs": (float, [ "publish-frequency", "interim-result-publish-frequency", "interim-result-publish-frequency-secs"]),
@@ -117,6 +122,13 @@ class ChatConfig:
             "top_p": (float, ["top-p", "top_p"]),
             "max_tokens": (int, ["max-tokens", "max-tokens-generated"]),
         }
+
+
+        ## Grab any prompt vars that are defined
+        prompt_vars = config_item.get("prompt-vars", None)
+        if prompt_vars is not None: 
+            config.prompt_vars.update(prompt_vars)
+        
 
         ## Load the config from the configured keys
         collected_keys = []

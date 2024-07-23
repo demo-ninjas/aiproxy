@@ -219,6 +219,9 @@ A config can contain any keys + values, but there are a number of core config va
 * `top-p` - The `top-p` to set on the AI Model
 * `max-tokens` - Limts the max number of tokens the AI Model can generate
 * `function-aliases` - A list (or dictionary) of function aliases to register (see below)
+* `prompt-vars` - A dictionary of variables that can be injected into a system (or user) prompt when using a prompt template
+* `system-prompt-is-template` - A boolean flag indicating whether or not to treat the system prompt as a template
+* `user-prompt-is-template` - A  boolean flag indicating whether or not to treat the user prompt as a template (only set this if you have control over the user prompt and are completely sure of the safety of enabling this)
 
 Each of these settings will also be set to a default value derived from the environment or a sensible value.
 
@@ -309,6 +312,61 @@ eg. The following is a configuration for the provided `search` base function, it
 ```
 
 In this case, the `endpoint` and `query-key` will be set to the environment variables `SEARCH_API_ENDPOINT` and `SEARCH_API_KEY`.
+
+### Prompt Templates
+
+When you define system prompts (and optionally for user prompts) you can treat them as a template, and apply substitutions within the prompt at runtime.
+
+To apply a substitution, wrap the substitution within squiggly brackets, eg: `{my-key}`
+
+When system prompts are being treated as templates (true by default), if you want the prompt to contain a squiggly bracket without beingn treated as a substitution, use two squiggly brackets, eg: `{{my data that isn't a substitution}}`
+
+If you do not want your system prompt to be treated as a template at all, you can set the `system-prompt-is-template` config value to `false`.
+
+The substitution is applied based on the following: 
+
+* `{date}` - will convert to today's date (in local time to the server) formatted as: `year-month-day` (aka. `%Y-%m-%d`)
+* `{time}` - will convert to the current time (in local time to the server) formatted as `hour:min:sec` (aka. `%H:%M:%S`)
+* `{datetime}` - will convert to the current time (in local time to the server) formatted as `year-month-day hour:min:sec` (aka. `%Y-%m-%d %H:%M:%S`)
+* `{date-format:formatstring}` - will convert to the date string as defined by the format string (eg. `{dateformat:%Y}` will convert to the current 4-digit year)
+* `{utcdate}` - will convert to today's date (in UTC) formatted as: `year-month-day` (aka. `%Y-%m-%d`)
+* `{utctime}` - will convert to the current time (in UTC) formatted as `hour:min:sec` (aka. `%H:%M:%S`)
+* `{utcdatetime}` - will convert to the current time (in UTC) formatted as `year-month-day hour:min:sec` (aka. `%Y-%m-%d %H:%M:%S`)
+* `{iso8601}` - will convert to the current time in ISO8601 format (aka. equivalent of: `%Y-%m-%d %H:%M:%S.%f%z`)
+* `{context-metadata-key}` - if matched to a context metadata variable will be replaced with that
+* `{config-prompt-var}` - if matched to a config prompt key, then it will be replaced with that (aka. matches a value in the `prompt-vars` dictionary within the config)
+* [Not matched] - then the substitution string will be left in the prompt untouched
+
+If you wish to define prompt key values in the config, you can set them in the `prompt-vars` dictionary, eg. 
+
+```JSON
+{
+    "id": "my-config", 
+    "prompt-vars": {
+        "my-var": "You are happy to be here",
+        "my-other-var": 1234
+    }
+}
+```
+
+Then, if the prompt template looks like this: 
+
+```
+You are an AI Assistant, and you are answering questions from users.
+
+{my-var}
+
+The magic number for today is: {my-other-var}
+```
+
+Then, the system prompt passed to the AI model will be: 
+```
+You are an AI Assistant, and you are answering questions from users.
+
+You are happy to be here
+
+The magic number for today is: 1234
+```
 
 
 ### CosmosDB as a Config Provider

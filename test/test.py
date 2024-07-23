@@ -31,10 +31,10 @@ streamer = FunctionStreamWriter(stream_function=print_stream_msg)
 
 import tests
 
-## Test the Completions Proxy
-from tests.test_completions_proxy import run as test_completions_proxy
-test_completions_proxy(streamer)
-print("\n------------------------\n")
+# ## Test the Completions Proxy
+# from tests.test_completions_proxy import run as test_completions_proxy
+# test_completions_proxy(streamer)
+# print("\n------------------------\n")
 
 # ## Test the Assistants Proxy
 # from tests.test_assistant_proxy import run as test_assistants_proxy
@@ -56,3 +56,7 @@ print("\n------------------------\n")
 # test_configured_orchestrator(streamer)
 # print("\n------------------------\n")
 
+# Test the Image Agent
+from tests.test_image_agent import run as test_image_agent
+test_image_agent(streamer)
+print("\n------------------------\n")

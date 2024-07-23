@@ -4,7 +4,6 @@ from aiproxy.data import ChatConfig
 
 GLOBAL_AGENTS_REGISTRY = {}
 
-
 def agent_factory(config: dict|str|ChatConfig, **kwargs) -> Agent:
     global GLOBAL_AGENTS_REGISTRY
     name = None
@@ -47,6 +46,9 @@ def agent_factory(config: dict|str|ChatConfig, **kwargs) -> Agent:
     elif agent_type == 'function' or agent_type == 'function-agent' or agent_type == 'functions':
         from .function_agent import FunctionAgent
         agent = FunctionAgent(name, description, config, **kwargs)
+    elif agent_type == 'analyse-image' or agent_type == 'analyse-image-agent' or agent_type == 'image':
+        from .analyse_image_agent import AnalyseImageAgent
+        agent = AnalyseImageAgent(name, description, config, **kwargs)
     else:
         raise ValueError(f"Unknown agent type: {agent_type}")
     

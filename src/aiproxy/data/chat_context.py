@@ -10,13 +10,17 @@ class ChatContext:
     history_provider:HistoryProvider
     function_args_preprocessor:Callable[[dict, FunctionDef, 'ChatContext'], dict]
     function_filter:Callable[[str,str], bool] = None
+    metadata:dict[str, any] = None
+    metadata_transient_keys:list[str] = None
 
     def __init__(self, 
                  thread_id:str = None, 
                  history_provider:HistoryProvider = None, 
                  stream:StreamWriter = None, 
                  function_args_preprocessor:Callable[[dict, FunctionDef, 'ChatContext'], dict] = None, 
-                 function_filter:Callable[[str,str], bool] = None
+                 function_filter:Callable[[str,str], bool] = None,
+                 metadata:dict[str,any] = None, 
+                 metadata_transient_keys:list[str] = None
                  ):
         self.history = None
         self.thread_id = thread_id
@@ -24,6 +28,8 @@ class ChatContext:
         self.stream_writer = stream
         self.function_args_preprocessor = function_args_preprocessor
         self.function_filter = function_filter
+        self.metadata = metadata
+        self.metadata_transient_keys = metadata_transient_keys
 
     def clone_for_single_shot(self) -> 'ChatContext':
         return ChatContext(
@@ -45,10 +51,15 @@ class ChatContext:
     def init_history(self, thread_id:str, system_prompt:str = None):
         if thread_id is not None: 
             self.thread_id = thread_id
-        if self.history is not None and len(self.history) > 0: return   ## Already head history, no need to init...
+        if self.history is not None and len(self.history) > 0: return   ## Already have history, no need to init...
 
         ## Load the history from the provider if it exists
-        self.history = self.history_provider.load_history(self.thread_id) or []
+        history, metadata = self.history_provider.load_history(self.thread_id)
+        self.history = history or []
+        if self.metadata is None:
+            self.metadata = metadata or {}
+        elif metadata is not None: 
+            self.metadata.update(metadata)
 
         if len(self.history) == 0 and system_prompt is not None:
             self.add_prompt_to_history(system_prompt, "system")
@@ -83,4 +94,23 @@ class ChatContext:
 
     def save_history(self):
         if self.thread_id is not None and self.history is not None:
-            self.history_provider.save_history(self.thread_id, self.history)
+            metadata = self.metadata.copy()
+            if metadata is not None and self.metadata_transient_keys is not None:
+                for key in self.metadata_transient_keys:
+                    if key in metadata:
+                        metadata.pop(key)
+
+            self.history_provider.save_history(self.thread_id, self.history, metadata=metadata)
+
+    def get_metadata(self, key:str, default: any = None) -> any:
+        return self.metadata.get(key, default) if self.metadata is not None else default
+    
+    def set_metadata(self, key:str, value:any, transient:bool = False):
+        if self.metadata is None: 
+            self.metadata = {}
+        self.metadata[key] = value
+        if transient: 
+            if self.metadata_transient_keys is None: 
+                self.metadata_transient_keys = []
+            if key not in self.metadata_transient_keys:
+                self.metadata_transient_keys.append(key)
