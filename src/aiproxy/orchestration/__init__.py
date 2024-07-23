@@ -29,12 +29,15 @@ def orchestrator_factory(config: dict|str|ChatConfig, **kwargs) -> AbstractProxy
     elif orchestrator_type == "multiagent" or orchestrator_type == "multi-agent" or orchestrator_type == "multiagentorchestrator":
         from .multi_agent_orchestrator import MultiAgentOrchestrator
         return GLOBAL_PROXIES_REGISTRY.load_proxy(config, MultiAgentOrchestrator, **kwargs)
+    elif orchestrator_type == "agent" or orchestrator_type == "agentorchestrator" or orchestrator_type == "agentproxy" or orchestrator_type == "single-agent":
+        from .agent_orchestrator import AgentOrchestrator
+        return GLOBAL_PROXIES_REGISTRY.load_proxy(config, AgentOrchestrator, **kwargs)
     elif orchestrator_type == "completion" or orchestrator_type == "completions" or orchestrator_type == "completionsorchestrator" or orchestrator_type == "completionsproxy":
         from ..proxy import CompletionsProxy
         return GLOBAL_PROXIES_REGISTRY.load_proxy(config, CompletionsProxy, **kwargs)
-    elif orchestrator_type == "assistant" or orchestrator_type == "assistantorchestrator" or orchestrator_type == "assistantproxy":
-        from ..proxy import AssistantProxy
-        return GLOBAL_PROXIES_REGISTRY.load_proxy(config, AssistantProxy, **kwargs)
+    elif orchestrator_type == "assistant" or orchestrator_type == "assistantorchestrator" or orchestrator_type == "assistantproxy" or orchestrator_type == "assistant-agent":
+        from .assistant_orchestrator import AssistantOrchestrator
+        return GLOBAL_PROXIES_REGISTRY.load_proxy(config, AssistantOrchestrator, **kwargs)
     elif orchestrator_type == "embedding" or orchestrator_type == "embeddings" or orchestrator_type == "embeddingorchestrator" or orchestrator_type == "embeddingproxy":
         from ..proxy import EmbeddingProxy
         return GLOBAL_PROXIES_REGISTRY.load_proxy(config, EmbeddingProxy, **kwargs)
