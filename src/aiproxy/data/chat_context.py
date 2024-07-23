@@ -36,7 +36,9 @@ class ChatContext:
             history_provider=None,  ## Don't need to clone the history provider 
             stream=None,            ## No Streamingn for this context
             function_args_preprocessor=self.function_args_preprocessor,
-            function_filter=self.function_filter
+            function_filter=self.function_filter,
+            metadata=self.metadata.copy(), 
+            metadata_transient_keys=self.metadata_transient_keys, 
         )
     
     def clone_for_thread_isolation(self, thread_id_to_use:str = None) -> 'ChatContext':
@@ -45,7 +47,9 @@ class ChatContext:
             history_provider=self.history_provider,
             function_args_preprocessor=self.function_args_preprocessor,
             function_filter=self.function_filter,
-            thread_id=thread_id_to_use
+            thread_id=thread_id_to_use,
+            metadata=self.metadata.copy(), 
+            metadata_transient_keys=self.metadata_transient_keys, 
         )
 
     def init_history(self, thread_id:str, system_prompt:str = None):
