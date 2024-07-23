@@ -4,11 +4,11 @@ from aiproxy.interfaces import StreamWriter, SimpleStreamMessage, HistoryProvide
 from .chat_message import ChatMessage
 
 class ChatContext:
-    thread_id:str
-    history:list[ChatMessage]
-    stream_writer:StreamWriter
-    history_provider:HistoryProvider
-    function_args_preprocessor:Callable[[dict, FunctionDef, 'ChatContext'], dict]
+    thread_id:str = None
+    history:list[ChatMessage] = None
+    stream_writer:StreamWriter = None
+    history_provider:HistoryProvider = None
+    function_args_preprocessor:Callable[[dict, FunctionDef, 'ChatContext'], dict] = None
     function_filter:Callable[[str,str], bool] = None
     metadata:dict[str, any] = None
     metadata_transient_keys:list[str] = None
