@@ -14,7 +14,7 @@ class AssistantAgent(Agent):
 
         proxy_name = self.config.get("proxy-name", name)
         self.proxy = GLOBAL_PROXIES_REGISTRY.load_proxy(proxy_name, AssistantProxy)
-        self._assistant_name = self.config.get("assistant-name", name)
+        self._assistant_name = self.config.get("assistant-name", None)
         self._thread_isolated = self.config.get("thread-isolated", True)
     
     def reset(self):
@@ -25,7 +25,8 @@ class AssistantAgent(Agent):
             context = context.clone_for_thread_isolation(self._isolated_thread_id)
 
         # Send message to the proxy
-        responses = self.proxy.send_message_and_return_outcome(message, context, assistant_name_or_id=self._assistant_name)
+        assistant_name = self._assistant_name or context.get_metadata('assistant') or context.get_metadata('assistant-id') or context.get_metadata('assistant-name') or self.config.get('name') or self.name
+        responses = self.proxy.send_message_and_return_outcome(message, context, assistant_name_or_id=assistant_name)
         # If the agent is using an isolated thread, store the thread-id for use later 
         if self._thread_isolated:
             self._isolated_thread_id = context.thread_id
