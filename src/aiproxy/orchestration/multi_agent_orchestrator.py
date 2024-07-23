@@ -74,7 +74,7 @@ class MultiAgentOrchestrator(AbstractProxy):
         ## Send the message to each agent in turn
         futs = []
         for agent in self._agents:
-            futs.append(self._executor.submit(self._send_message_to_agent, message, context))
+            futs.append(self._executor.submit(self._send_message_to_agent, message, context.clone_for_thread_isolation()))
         
         ## Wait for all the agents to complete
         timeout = 120.0
@@ -110,4 +110,9 @@ class MultiAgentOrchestrator(AbstractProxy):
 
         prompt = self._interp_template.format(AGENT_RESPONSES=agent_responses, USER_PROMPT=message)
         interp_context = context.clone_for_single_shot()
-        return self._interpreter.send_message(prompt, interp_context, use_functions=False)
+        response = self._interpreter.send_message(prompt, interp_context, use_functions=False)
+
+        if not response.error and not response.filtered:
+            ## Add the User Message + Final Response to the context history    
+            context.add_prompt_to_history(message, 'user')
+            context.add_message_to_history(response, 'assistant')

@@ -58,6 +58,10 @@ class ChatContext:
         if self.history is not None and len(self.history) > 0: return   ## Already have history, no need to init...
 
         ## Load the history from the provider if it exists
+        if self.history_provider is None:
+            self.history_provider = NoOpHistoryProvider()
+        
+        ## Load the history from the provider if it exists
         history, metadata = self.history_provider.load_history(self.thread_id)
         self.history = history or []
         if self.metadata is None:
