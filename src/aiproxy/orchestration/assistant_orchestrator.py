@@ -13,7 +13,7 @@ class AssistantOrchestrator(AbstractProxy):
 
     def __init__(self, config: ChatConfig | str) -> None:
         super().__init__(config)
-        agent_config = ChatConfig.load(config)
+        agent_config = ChatConfig.load(config) if type(config) is not ChatConfig else config.clone()
         agent_config['type'] = 'assistant'
         agent_config['name'] = config.get('agent-name') or config.get('name') or 'assistant'
         agent_config['description'] = config.get('agent-description') or config.get('description') or 'An AI Assistant'
