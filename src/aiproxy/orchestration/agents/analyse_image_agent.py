@@ -24,7 +24,7 @@ class AnalyseImageAgent(Agent):
         self._custom_system_prompt = self.config.get("system-prompt", None)
         self._analyse_prompt = self.config.get("analyse-prompt", None)
         self._custom_model = self.config.get("model", None)
-        self._single_shot = self.config.get("single-shot", False)
+        self._single_shot = self.config.get("single-shot", True)
         self._thread_isolated = self.config.get("thread-isolated", False)
         self._default_image_extension = self.config.get("default-image-extension") or self.config.get("default-image-type") or 'jpg'
         
