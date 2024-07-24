@@ -102,7 +102,11 @@ class ChatContext:
 
     def save_history(self):
         if self.history_provider is None: return
-        if self.thread_id is not None and self.history is not None:
+        if self.history is not None and len(self.history) > 0:
+            if self.thread_id is None: 
+                import uuid
+                self.thread_id = uuid.uuid4().hex
+                
             metadata = self.metadata.copy() if self.metadata is not None else None
             if metadata is not None and self.metadata_transient_keys is not None:
                 for key in self.metadata_transient_keys:
