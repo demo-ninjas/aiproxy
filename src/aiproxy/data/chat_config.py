@@ -95,6 +95,9 @@ class ChatConfig:
         return default_val
 
     def load(name:str|dict, raise_if_not_found:bool = False) -> 'ChatConfig':
+        if type(name) is ChatConfig:    ## Catch for when the config has already been loaded and it was passed to another class that expected to have to load the config itself
+            return name
+
         from aiproxy.utils.config import load_named_config
         config_item = name if type(name) is dict else load_named_config(name, raise_if_not_found)
 
