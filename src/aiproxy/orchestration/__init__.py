@@ -19,7 +19,8 @@ def orchestrator_factory(config: dict|str|ChatConfig, **kwargs) -> AbstractProxy
         raise AssertionError("Orchestrator name not specified, this is a mandatory field")
 
     ## Grab the orchestrator type from the config (or default to the basic CompletionsProxy)
-    orchestrator_type = config.get("type", name).lower()
+    orchestrator_type = config.get("orchestrator-type") or config.get("type", name)
+    orchestrator_type = orchestrator_type.lower()
     if orchestrator_type == "agentselect" or orchestrator_type == "agent-select" or orchestrator_type == "agentselectorchestrator":
         from .agent_select_orchestrator import AgentSelectOrchestrator
         return GLOBAL_PROXIES_REGISTRY.load_proxy(config, AgentSelectOrchestrator, **kwargs)

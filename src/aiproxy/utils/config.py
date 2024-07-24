@@ -68,3 +68,32 @@ def load_named_config(name:str, raise_if_not_found:bool = True, use_cache:bool =
             CACHED_CONFIGS[name] = config_item
     
     return config_item
+
+def load_public_orchestrator_list() -> list[str]:
+    """
+    Loads the list of orchestrators from the public orchestrators config
+    """
+    from aiproxy.functions.cosmosdb import get_all_items
+    cosmos_config_name = os.environ.get("CONFIGS_COSMOS_CONFIG", "configs")
+    
+    orchestrators = [
+        'completion',
+        'assistant',
+        'agent-select', 
+        'step-plan',
+        'multi-agent',
+        'image',
+        'single-agent',
+        'embedding'
+    ]
+    
+    ## Load the Default Orchestrators...
+    try:
+        config_items = get_all_items(source=cosmos_config_name)
+        for item in config_items:
+            if item["public"] == True:
+                orchestrators.append(item["name"])
+    except Exception as e:
+        print(f"Error loading public orchestrators: {e}")
+    
+    return orchestrators
