@@ -48,6 +48,8 @@ def load_named_config(name:str, raise_if_not_found:bool = True, use_cache:bool =
             }
         else: 
             config_item = get_item(name, source=cosmos_config_name)
+            if config_item is None: 
+                config_item = get_item(name.lower(), source=cosmos_config_name)
     
     ## If config is not found, raise an error
     if raise_if_not_found and config_item is None:
