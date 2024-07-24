@@ -1,6 +1,6 @@
 [project]
 name = "aiproxy"
-version = "0.1.25"
+version = "0.1.26"
 authors = [
   { name="Stricko", email="adams@strickos.com" },
 ]
@@ -19,7 +19,8 @@ dependencies = [
   'azure-cosmos', 
   'azure-messaging-webpubsubservice', 
   'azure-search-documents', 
-  'azure-identity'
+  'azure-identity',
+  'pillow'
 ]
 
 [project.urls]
