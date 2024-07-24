@@ -19,7 +19,16 @@ class ImageOrchestrator(AbstractProxy):
         
     def send_message(self, message: str, context: ChatContext, override_model: str = None, override_system_prompt: str = None, function_filter: Callable[[str, str], bool] = None, use_functions: bool = True, timeout_secs: int = 0, use_completions_data_source_extensions: bool = False) -> ChatResponse:
         image_bytes = context.get_metadata("image-bytes") or context.get('image-metadata') or context.get('bytes')
+        resp = None
         if image_bytes is not None:
-            return self._agent.process_message(image_bytes, context)
+            resp = self._agent.process_message(image_bytes, context)
         else:
-            return self._agent.process_message(message, context)
+            resp = self._agent.process_message(message, context)
+
+        if not resp.error and not resp.filtered:
+            context.add_prompt_to_history("Analyse this image", 'user')
+            context.add_prompt_to_history(resp.message, 'assistant')
+            context.save_history()
+
+        return resp
+
