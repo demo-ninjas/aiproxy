@@ -178,6 +178,7 @@ class StepPlanOrchestrator(AbstractProxy):
         self._responder_model = self._config['responder-model'] or self._config['model'] or None
         self._proxy = GLOBAL_PROXIES_REGISTRY.load_proxy(self._config['proxy'], CompletionsProxy)
         self._include_step_names_in_result = self._config.get('include-step-names-in-result', True)
+        self._final_response_template = self._config.get('final-response-template', GENERATE_FINAL_RESPONSE_TEMPLATE)
 
 
     def set_function_list(self, function_list:list[str]):
@@ -424,7 +425,7 @@ class StepPlanOrchestrator(AbstractProxy):
                 data = data.values()
             data_string = "\n* ".join([ item for item in data ])
 
-        prompt = GENERATE_FINAL_RESPONSE_TEMPLATE.format(
+        prompt = self._final_response_template.format(
             preamble=self._responder_preamble or '',
             user_prompt=original_prompt,
             intent=intent or 'Not Provided',

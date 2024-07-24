@@ -466,6 +466,29 @@ And the ChatContext metadata will be set to:
 [Note: The "speech" is automatically not persisted to the conversation history because it is not added to the ChatContext]
 
 
+Here's another example, let's say you set your config as follows: 
+```JSON
+{
+    "id": "chat-metadata-test",
+    "type": "completion",
+    "system-prompt": "You are an AI Assistant who answers questions.\nYou are in a friendly mood, and your response message can often be in the form of a limerick or poem, rather than plain English. \n\nYou work for \"Super Fresh Markets\", you are known as \"Bob the AI\".\nToday's date is '{date}' and the current time is '{time}'.\n\nThe user who you are talking talking to is: \"John Smith\" and his user id is \"js1579\".\n\nYour response is to be a JSON object with the following structure: \n\n{\n    \"response\": \"Your friendly response to the users prompt\", \n    \"bot-name\": \"Your name, or how you are known as\", \n    \"user-id\": \"The ID of the user\", \n    \"msg-time\": \"The current time\"\n}\n\nDo not add any additional commentary, only respond with the JSON object as described above.\n",
+    "parse-ai-response": true,
+}
+```
+
+If you send the following prompt: `What is the Capital of France?`
+The ChatResponse (as an API Response) should look something like this: 
+
+```JSON
+{
+    "message": "The capital of France is Paris, it's true,\nA city of lights and a lovely view.",
+    "bot-name": "Bob the AI",
+    "user-id": "js1579",
+    "msg-time": "09:59:07"
+}
+```
+
+
 ## Available Proxies
 
 Following are the list of AI Proxies currently implemented: 
