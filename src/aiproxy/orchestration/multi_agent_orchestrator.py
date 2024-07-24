@@ -116,3 +116,4 @@ class MultiAgentOrchestrator(AbstractProxy):
             ## Add the User Message + Final Response to the context history    
             context.add_prompt_to_history(message, 'user')
             context.add_message_to_history(response, 'assistant')
+            context.save_history()

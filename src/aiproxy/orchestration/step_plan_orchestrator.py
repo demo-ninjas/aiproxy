@@ -311,7 +311,7 @@ class StepPlanOrchestrator(AbstractProxy):
         context.add_prompt_to_history(message, 'user')
         ## Add the result to the context
         context.add_prompt_to_history(plan_result.message, 'assistant')
-
+        context.save_history()
         return plan_result
 
     def _parse_value_directives(self, context:ChatContext, variables:dict, args:dict, key:str, value:any):
