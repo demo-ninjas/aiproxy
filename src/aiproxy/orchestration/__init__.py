@@ -29,6 +29,9 @@ def orchestrator_factory(config: dict|str|ChatConfig, **kwargs) -> AbstractProxy
     elif orchestrator_type == "multiagent" or orchestrator_type == "multi-agent" or orchestrator_type == "multiagentorchestrator":
         from .multi_agent_orchestrator import MultiAgentOrchestrator
         return GLOBAL_PROXIES_REGISTRY.load_proxy(config, MultiAgentOrchestrator, **kwargs)
+    elif orchestrator_type == "image" or orchestrator_type == "imageorchestrator" or orchestrator_type == "imageproxy" or orchestrator_type == "image-analyser":
+        from .image_orchestrator import ImageOrchestrator
+        return GLOBAL_PROXIES_REGISTRY.load_proxy(config, ImageOrchestrator, **kwargs)
     elif orchestrator_type == "agent" or orchestrator_type == "agentorchestrator" or orchestrator_type == "agentproxy" or orchestrator_type == "single-agent":
         from .agent_orchestrator import AgentOrchestrator
         return GLOBAL_PROXIES_REGISTRY.load_proxy(config, AgentOrchestrator, **kwargs)
