@@ -27,7 +27,7 @@ def agent_factory(config: dict|str|ChatConfig, **kwargs) -> Agent:
         return GLOBAL_AGENTS_REGISTRY
     
     description = config.get("description", None)
-    agent_type = config.get("type", name)
+    agent_type = config.get('agent-type') or config.get("type", name)
     if agent_type is None:
         raise AssertionError("Agent type not specified in config")
     
