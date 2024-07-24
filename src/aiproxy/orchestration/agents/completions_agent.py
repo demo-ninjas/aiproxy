@@ -21,7 +21,7 @@ class CompletionsAgent(Agent):
         self._custom_system_message = self.config.get("system-message", None)
         self._custom_model = self.config.get("model", None)
         self._single_shot = self.config.get("single-shot", False)
-        self._thread_isolated = self.config.get("thread-isolated", True)
+        self._thread_isolated = self.config.get("thread-isolated", False)
         
     def set_function_filter(self, function_filter:Callable[[str,str], bool]):
         self._function_filter = function_filter

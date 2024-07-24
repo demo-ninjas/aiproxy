@@ -17,7 +17,7 @@ class OrchestratorProxyAgent(Agent):
         orch_config['type'] = config.get('orchestrator-type') or config.get('type')
         self._orchestrator = orchestrator_factory(orch_config)
         self._single_shot = self.config.get("single-shot", False)
-        self._thread_isolated = self.config.get("thread-isolated", True)
+        self._thread_isolated = self.config.get("thread-isolated", False)
     
     def reset(self):
         self._isolated_thread_id = None
