@@ -47,7 +47,7 @@ class AnalyseImageAgent(Agent):
             return self.process_native_image(message, context)
            
         # Check with the context if the it knows the extension of the image
-        img_ext = context.get_metadata("image-extension", self._default_image_extension)
+        img_ext = context.get_metadata("image-extension") or context.get_metadata("file-extension") or self._default_image_extension
     
         # Send message to the proxy
         img_msg = ChatMessage(
