@@ -92,8 +92,12 @@ def load_public_orchestrator_list() -> list[str]:
         config_items = get_all_items(source=cosmos_config_name)
         for item in config_items:
             if item["public"] == True:
-                orchestrators.append(item["name"])
+                name = item.get("name") or item.get('id') or None
+                if name is not None: 
+                    orchestrators.append(name)
     except Exception as e:
         print(f"Error loading public orchestrators: {e}")
+    
+    orchestrators.sort()
     
     return orchestrators
