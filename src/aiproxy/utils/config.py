@@ -137,6 +137,6 @@ def load_public_orchestrator_list() -> list[dict]:
     except Exception as e:
         print(f"Error loading public orchestrators: {e}")
     
-    orchestrators.sort()
+    orchestrators.sort(key=lambda x: x['name'])
     
     return orchestrators
