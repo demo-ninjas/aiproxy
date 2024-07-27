@@ -69,7 +69,7 @@ def load_named_config(name:str, raise_if_not_found:bool = True, use_cache:bool =
     
     return config_item
 
-def load_public_orchestrator_list() -> list[str]:
+def load_public_orchestrator_list() -> list[dict]:
     """
     Loads the list of orchestrators from the public orchestrators config
     """
@@ -94,7 +94,14 @@ def load_public_orchestrator_list() -> list[str]:
             if item["public"] == True:
                 name = item.get("name") or item.get('id') or None
                 if name is not None: 
-                    orchestrators.append(name)
+                    data = { 'name':name }
+                    desc = item.get('short-description') or item.get('description')
+                    if desc is not None: 
+                        data['description'] = desc
+                    pattern = item.get('pattern')
+                    if pattern is not None:
+                        data['pattern'] = pattern
+                    orchestrators.append(data)
     except Exception as e:
         print(f"Error loading public orchestrators: {e}")
     
