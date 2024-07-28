@@ -133,6 +133,10 @@ def load_public_orchestrator_list() -> list[dict]:
                     pattern = item.get('pattern')
                     if pattern is not None:
                         data['pattern'] = pattern
+                    requirements = item.get('requirements')
+                    if requirements is not None:
+                        data['requirements'] = requirements
+                    
                     orchestrators.append(data)
     except Exception as e:
         print(f"Error loading public orchestrators: {e}")
