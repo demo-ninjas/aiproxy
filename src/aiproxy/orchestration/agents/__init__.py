@@ -10,7 +10,7 @@ def agent_factory(config: dict|str|ChatConfig, **kwargs) -> Agent:
     if type(config) is str:
         tmp_name = config
         config = ChatConfig.load(config)
-        name = config.get("agent-name") or config.get('name') or tmp_name
+        name = config.get("agent-name") or config.get('agent') or config.get('name') or tmp_name
     elif type(config) is dict:
         config = ChatConfig.load(config)
         name = config.get("agent-name") or config.get('name')

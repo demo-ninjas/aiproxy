@@ -39,7 +39,7 @@ The responses to the user prompt are provided below, followed by the user prompt
 """
 
 class MultiAgentOrchestrator(AbstractProxy):
-    _agents:list[Agent]
+    _agents:list[Agent] = None
     _interpreter:CompletionsProxy
     _interp_template:str = None
     _executor:ThreadPoolExecutor
@@ -59,23 +59,41 @@ class MultiAgentOrchestrator(AbstractProxy):
         
     def _load_agent_config(self): 
         agent_configs = self._config["agents"]
-        if agent_configs is None or len(agent_configs) == 0: 
-            raise AssertionError("No agents configured - you need to define at least one agent to use this orchestrator")
-        
-        self._agents = []
+        if agent_configs is not None and len(agent_configs) > 0: 
+            self._agents = self._load_agents(agent_configs)
+
+    def _load_agents(self, agent_configs: list[dict|str]) -> list[Agent]:
+        agent_list = []
         for agent_config in agent_configs:
             agent = agent_factory(agent_config)
-            self._agents.append(agent)
+            agent_list.append(agent)
+        return agent_list
 
     def _send_message_to_agent(self, agent:Agent, message:str, context:ChatContext) -> Tuple[Agent, ChatResponse]:
         return (agent, agent.process_message(message, context))
 
     def send_message(self, message: str, context: ChatContext, override_model: str = None, override_system_prompt: str = None, function_filter: Callable[[str, str], bool] = None, use_functions: bool = True, timeout_secs: int = 0, use_completions_data_source_extensions: bool = False) -> ChatResponse:
         ## Send the message to each agent in turn
-        futs = []
-        for agent in self._agents:
-            futs.append(self._executor.submit(self._send_message_to_agent, message, context.clone_for_thread_isolation()))
         
+        ## Check if the configured agent list is empty + if so, check if the request is specifying the agents
+        agent_list = self._agents
+        if agent_list is None or len(agent_list) == 0:
+            agent_configs = self._config.get("agents") or self._config.get("agent")
+            if agent_configs is not None:
+                if type(agent_configs) is list:
+                    agent_list = self._load_agents(agent_configs)
+                elif type(agent_configs) is dict:
+                    agent_list = self._load_agents([agent_configs])
+                elif type(agent_configs) is str:
+                    agent_list = self._load_agents(agent_configs.split(","))
+        
+        if len(agent_list) == 0:
+            raise ValueError("No agents configured for the MultiAgentOrchestrator, you must specify at least one agent")
+
+        futs = []
+        for agent in agent_list:
+            futs.append(self._executor.submit(self._send_message_to_agent, agent, message, context.clone_for_thread_isolation()))        
+
         ## Wait for all the agents to complete
         timeout = 120.0
         if timeout_secs > 0:

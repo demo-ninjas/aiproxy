@@ -85,17 +85,26 @@ def load_public_orchestrator_list() -> list[dict]:
         {
             'name': 'assistant', 
             'description': 'A simple orchestrator that passes the prompt to an assistant (that you specify) that has been previously defined in the OpenAI API',
-            'pattern': 'assistant'
+            'pattern': 'assistant',
+            'requirements': [
+                'param: assistant (name or ID of assistant)'
+            ]
         },
         {
             'name': 'multi-agent', 
             'description': 'Passes the prompt to multiple agents, then interprets the reponses and returns a single succinct response',
-            'pattern': 'multi-agent'
+            'pattern': 'multi-agent',
+            'requirements': [
+                'param: agents (comma separated list of agent names/types)'
+            ]
         },
         {
             'name': 'single-agent', 
             'description': 'Passes the prompt to an agent, and returns the response from the agent (you must specify the agent)',
-            'pattern': 'single-agent'
+            'pattern': 'single-agent', 
+            'requirements': [
+                'param: agent (name/type of Agent)'
+            ]
         },
         {
             'name': 'step-plan', 
@@ -110,7 +119,10 @@ def load_public_orchestrator_list() -> list[dict]:
         {
             'name': 'image', 
             'description': 'Analyses a given image (must be attached) and returns a response',
-            'pattern': 'image'
+            'pattern': 'image',
+            'requirements': [
+                'file: attached (an image file)'
+            ]
         },
         {
             'name': 'embedding', 

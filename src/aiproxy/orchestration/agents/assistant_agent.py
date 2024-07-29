@@ -14,7 +14,7 @@ class AssistantAgent(Agent):
 
         proxy_name = self.config.get("proxy-name", name)
         self.proxy = GLOBAL_PROXIES_REGISTRY.load_proxy(proxy_name, AssistantProxy)
-        self._assistant_name = self.config.get("assistant-name", None)
+        self._assistant_name = self.config.get("assistant-name") or self.config.get("assistant")
         self._thread_isolated = self.config.get("thread-isolated", False)
     
     def reset(self):
