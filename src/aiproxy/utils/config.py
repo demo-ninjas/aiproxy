@@ -176,3 +176,11 @@ def update_orchestrator(orchestrator:dict):
     from aiproxy.functions.cosmosdb import upsert_item
     cosmos_config_name = os.environ.get("CONFIGS_COSMOS_CONFIG", "configs")
     upsert_item(orchestrator, source=cosmos_config_name)
+
+def get_orchestrator_record(orchestrator_name:str):
+    """
+    Gets the orchestrator record from the CosmosDB
+    """
+    from aiproxy.functions.cosmosdb import get_item
+    cosmos_config_name = os.environ.get("CONFIGS_COSMOS_CONFIG", "configs")
+    return get_item(orchestrator_name, source=cosmos_config_name)
