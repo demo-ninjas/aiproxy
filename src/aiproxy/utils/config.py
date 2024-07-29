@@ -69,13 +69,12 @@ def load_named_config(name:str, raise_if_not_found:bool = True, use_cache:bool =
     
     return config_item
 
+
 def load_public_orchestrator_list() -> list[dict]:
     """
     Loads the list of orchestrators from the public orchestrators config
     """
-    from aiproxy.functions.cosmosdb import get_all_items
-    cosmos_config_name = os.environ.get("CONFIGS_COSMOS_CONFIG", "configs")
-    
+  
     orchestrators = [
         { 
             'name': 'completion', 
@@ -130,12 +129,26 @@ def load_public_orchestrator_list() -> list[dict]:
             'pattern': 'embedding'
         }
     ]
+
+    ## Load the Public Orchestrators...
+    orchestrators.extend(load_orchestrators(True))
     
+    orchestrators.sort(key=lambda x: x['name'])
+    return orchestrators
+
+def load_orchestrators(only_public:bool = True) -> list[dict]:
+    """
+    Loads the list of orchestrators from the public orchestrators config
+    """
+    from aiproxy.functions.cosmosdb import get_all_items
+    cosmos_config_name = os.environ.get("CONFIGS_COSMOS_CONFIG", "configs")
+
     ## Load the Default Orchestrators...
+    orchestrators = []
     try:
         config_items = get_all_items(source=cosmos_config_name)
         for item in config_items:
-            if item.get("public") == True:
+            if not only_public or item["public"] == True:
                 name = item.get("name") or item.get('id') or None
                 if name is not None: 
                     data = { 'name':name }
@@ -154,5 +167,12 @@ def load_public_orchestrator_list() -> list[dict]:
         print(f"Error loading public orchestrators: {e}")
     
     orchestrators.sort(key=lambda x: x['name'])
-    
     return orchestrators
+
+def update_orchestrator(orchestrator:dict):
+    """
+    Updates the orchestrator in the CosmosDB
+    """
+    from aiproxy.functions.cosmosdb import upsert_item
+    cosmos_config_name = os.environ.get("CONFIGS_COSMOS_CONFIG", "configs")
+    upsert_item(orchestrator, source=cosmos_config_name)
