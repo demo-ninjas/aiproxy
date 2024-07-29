@@ -135,7 +135,7 @@ def load_public_orchestrator_list() -> list[dict]:
     try:
         config_items = get_all_items(source=cosmos_config_name)
         for item in config_items:
-            if item["public"] == True:
+            if item.get("public") == True:
                 name = item.get("name") or item.get('id') or None
                 if name is not None: 
                     data = { 'name':name }
