@@ -13,10 +13,15 @@ class AgentOrchestrator(AbstractProxy):
     def __init__(self, config: ChatConfig | str) -> None:
         super().__init__(config)
         
-        name = config.get("agent-name") or config.get('agent') or config.get('name')
+        name = config.get("agent-name") or config.get('agent') or config.get('agent-type') or config.get('agent-id') or config.get('type') or config.get('name')
         if name is not None:
-            agent_config = ChatConfig.load(config)
-            self._agent = agent_factory(agent_config)
+            try:
+                agent_config = ChatConfig.load(config)
+                self._agent = agent_factory(agent_config)
+            except Exception as e:
+                estr = str(e).lower()
+                if 'not found' not in estr and 'unknown' not in estr:
+                    raise ValueError(f"Failed to create agent from config: {estr}")
         
     def send_message(self, message: str, context: ChatContext, override_model: str = None, override_system_prompt: str = None, function_filter: Callable[[str, str], bool] = None, use_functions: bool = True, timeout_secs: int = 0, use_completions_data_source_extensions: bool = False) -> ChatResponse:
         if self._agent is None: 
