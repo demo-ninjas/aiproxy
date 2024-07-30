@@ -183,4 +183,10 @@ def get_config_record(config_name:str):
     """
     from aiproxy.functions.cosmosdb import get_item
     cosmos_config_name = os.environ.get("CONFIGS_COSMOS_CONFIG", "configs")
-    return get_item(config_name, source=cosmos_config_name)
+    item = get_item(config_name, source=cosmos_config_name)
+    # Remove all keys that start with an underscore
+    if item is not None:
+        for key in list(item.keys()):
+            if key.startswith("_"):
+                del item[key]
+    return item
