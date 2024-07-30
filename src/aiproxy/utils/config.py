@@ -131,12 +131,12 @@ def load_public_orchestrator_list() -> list[dict]:
     ]
 
     ## Load the Public Orchestrators...
-    orchestrators.extend(load_orchestrators(True))
+    orchestrators.extend(load_configs(True))
     
     orchestrators.sort(key=lambda x: x['name'])
     return orchestrators
 
-def load_orchestrators(only_public:bool = True) -> list[dict]:
+def load_configs(only_public:bool = True) -> list[dict]:
     """
     Loads the list of orchestrators from the public orchestrators config
     """
@@ -169,17 +169,17 @@ def load_orchestrators(only_public:bool = True) -> list[dict]:
     orchestrators.sort(key=lambda x: x['name'])
     return orchestrators
 
-def update_orchestrator(orchestrator:dict):
+def update_config(config:dict):
     """
-    Updates the orchestrator in the CosmosDB
+    Updates the config in the CosmosDB
     """
     from aiproxy.functions.cosmosdb import upsert_item
     cosmos_config_name = os.environ.get("CONFIGS_COSMOS_CONFIG", "configs")
-    upsert_item(orchestrator, source=cosmos_config_name)
+    upsert_item(config, source=cosmos_config_name)
 
-def get_orchestrator_record(orchestrator_name:str):
+def get_config_record(orchestrator_name:str):
     """
-    Gets the orchestrator record from the CosmosDB
+    Gets the config record from the CosmosDB
     """
     from aiproxy.functions.cosmosdb import get_item
     cosmos_config_name = os.environ.get("CONFIGS_COSMOS_CONFIG", "configs")
