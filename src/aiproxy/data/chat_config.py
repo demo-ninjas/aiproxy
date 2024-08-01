@@ -100,7 +100,9 @@ class ChatConfig:
 
         from aiproxy.utils.config import load_named_config
         config_item = name if type(name) is dict else load_named_config(name, raise_if_not_found)
-
+        if type(name) is not str and config_item is not None: 
+            name = config_item.get("name") or config_item.get('id') or config_item.get('config-name') or 'default-'+str(hash(config_item))
+        
         config = ChatConfig(config_item.get("name", name) if config_item is not None else name)
         
         if config_item is None:
