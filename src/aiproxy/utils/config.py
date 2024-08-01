@@ -98,6 +98,14 @@ def load_public_orchestrator_list() -> list[dict]:
             ]
         },
         {
+            'name': 'sequential-agent', 
+            'description': 'Sequntially passes the prompt to a group of agents, providing both the user prompt + previous responses to subsequent agents. The last agent is the final responder.',
+            'pattern': 'sequantial-agent',
+            'requirements': [
+                'param: agents (comma separated list of agent names/types)'
+            ]
+        },
+        {
             'name': 'single-agent', 
             'description': 'Passes the prompt to an agent, and returns the response from the agent (you must specify the agent)',
             'pattern': 'single-agent', 

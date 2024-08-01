@@ -19,6 +19,11 @@ Agent: [Agent Name]
 
 ---
 
+Agent: [Agent Name]
+[Agent Response]
+
+---
+
 Note the '---' which is used as a separater between agent responses.
 
 If an agent response is filtered due to a content violation, or the agent encountered an error, the response will be in the format: 'Failed due to [ERROR DESCRIPTION]'.
@@ -133,5 +138,5 @@ class MultiAgentOrchestrator(AbstractProxy):
         if not response.error and not response.filtered:
             ## Add the User Message + Final Response to the context history    
             context.add_prompt_to_history(message, 'user')
-            context.add_message_to_history(response, 'assistant')
+            context.add_prompt_to_history(response, 'assistant')
             context.save_history()

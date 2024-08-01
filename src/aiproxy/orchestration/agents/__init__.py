@@ -43,6 +43,9 @@ def agent_factory(config: dict|str|ChatConfig, **kwargs) -> Agent:
     elif agent_type == "route-to-agent" or agent_type == "route-to-agent-agent":
         from .route_to_agent_agent import RouteToAgentAgent
         agent = RouteToAgentAgent(name, description, config, **kwargs)
+    elif agent_type == 'url' or agent_type == 'url-agent' or agent_type == 'urlagent':
+        from .url_agent import UrlAgent
+        agent = UrlAgent(name, description, config, **kwargs)
     elif agent_type == 'function' or agent_type == 'function-agent' or agent_type == 'functions':
         from .function_agent import FunctionAgent
         agent = FunctionAgent(name, description, config, **kwargs)
