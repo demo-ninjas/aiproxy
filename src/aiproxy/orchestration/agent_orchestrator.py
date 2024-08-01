@@ -31,4 +31,8 @@ class AgentOrchestrator(AbstractProxy):
         if self._agent is None: 
             raise ValueError("No agent specified for the message")
         
-        return self._agent.process_message(message, context)
+        result = self._agent.process_message(message, context.clone_for_single_shot())
+        context.add_prompt_to_history(message, 'user')
+        context.add_prompt_to_history(result.message, 'assistant')
+        context.save_history()
+        return result

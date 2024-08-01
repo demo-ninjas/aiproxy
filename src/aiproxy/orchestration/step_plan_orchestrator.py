@@ -454,5 +454,5 @@ class StepPlanOrchestrator(AbstractProxy):
         if result.filtered:
             return f"Sorry, I can't respond to that."
         elif result.failed:
-            return f"Sorry, I couldn't generate a response due to an error"
+            return f"Sorry, I couldn't generate a response due to an error"        
         return result.message

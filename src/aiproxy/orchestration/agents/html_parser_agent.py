@@ -31,41 +31,48 @@ class HtmlPaserAgent(Agent):
                 rule_action = rule.get("action")
                 rule_selector = rule.get("selector")
                 rule_attr = rule.get("attr")
+                rule_limit = rule.get("limit") or None
                 rule_index = rule.get("index")
                 rule_default = rule.get("default")
                 rule_store_tmp = rule.get("as-var") or rule.get("store-tmp") or False
                 rule_element = rule.get("var") or rule.get('on-var') or rule.get('for-element')
                 
-                write_to = extraction_ctx if rule_store_tmp is False else result
-                basis = soup if rule_element is None else extraction_ctx.get(rule_element) or soup
+                write_to = extraction_ctx if rule_store_tmp else result
+                basis = soup if rule_element is None else extraction_ctx.get(rule_element, soup)
 
                 if rule_action is None and rule_selector is not None:
                     rule_action = "select"
                 
                 if rule_action is None:
                     write_to[rule_name] = rule_default
+                    continue
 
+                ## Process Element List...
+                elements = None
                 rule_action = rule_action.lower()
                 if rule_action == "select":
-                    elements = basis.select(rule_selector)
-                    if len(elements) == 0:
-                        write_to[rule_name] = rule_default
-                    else:
-                        if rule_index is not None and rule_index >= 0 and rule_index < len(elements):
-                            element = elements[rule_index]
-                            if rule_attr is not None:
-                                if rule_attr == "text":
-                                    write_to[rule_name] = element.get_text()
-                                else:
-                                    write_to[rule_name] = element.get(rule_attr)
-                            else:
-                                write_to[rule_name] = element.get_text()
-                        else:
-                            write_to[rule_name] = rule_default
+                    elements = basis.select(rule_selector, limit=rule_limit)
                 elif rule_action == "find":
-                    element = basis.find(rule_selector)
-                    if element is None:
+                    e = basis.find(rule_selector, limit=rule_limit)
+                    if e is not None:
+                        elements = [ e ]
+                elif rule_action == "find_all":
+                    elements = basis.find_all(rule_selector, limit=rule_limit)
+                
+                if elements is None or len(elements) == 0:
+                    if rule_default is not None:
                         write_to[rule_name] = rule_default
+                else: 
+                    if rule_index is not None and rule_index >= 0 and rule_index < len(elements):
+                        ## Pick a specific element from the list
+                        element = elements[rule_index]
+                        if rule_attr is not None:
+                            if rule_attr == "text":
+                                write_to[rule_name] = element.get_text()
+                            else:
+                                write_to[rule_name] = element.get(rule_attr)
+                        else:
+                            write_to[rule_name] = element if rule_store_tmp else element.get_text()
                     else:
                         if rule_attr is not None:
                             if rule_attr == "text":
@@ -73,25 +80,7 @@ class HtmlPaserAgent(Agent):
                             else:
                                 write_to[rule_name] = element.get(rule_attr)
                         else:
-                            write_to[rule_name] = element.get_text()
-                elif rule_action == "find_all":
-                    elements = basis.find_all(rule_selector)
-                    if len(elements) == 0:
-                        write_to[rule_name] = rule_default
-                    else:
-                        if rule_index is not None and rule_index >= 0 and rule_index < len(elements):
-                            element = elements[rule_index]
-                            if rule_attr is not None:
-                                if rule_attr == "text":
-                                    write_to[rule_name] = element.get_text()
-                                else:
-                                    write_to[rule_name] = element.get(rule_attr)
-                            else:
-                                write_to[rule_name] = element.get_text()
-                        else:
-                            write_to[rule_name] = rule_default
-                else:
-                    write_to[rule_name] = rule_default
+                            write_to[rule_name] = elements if rule_store_tmp else [ e.get_text() for e in elements ]
 
             response = ChatResponse()
             if self.convert_to_string:
