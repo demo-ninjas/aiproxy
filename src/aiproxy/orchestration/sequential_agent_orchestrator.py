@@ -34,7 +34,7 @@ class SequentialAgentOrchestrator(AbstractProxy):
     def __init__(self, config: ChatConfig | str) -> None:
         super().__init__(config)
         self._load_agent_config()
-        self._carry_over_user_prompt = self._config.get("carry-over-user-prompt", True)
+        self._carry_over_user_prompt = self._config.get("carry-over-user-prompt") or self._config.get("carry-over") or self._config.get("carry-over-prompt") or True
         self._carry_over_template = self._config.get("carry-over-template", CARRY_OVER_TEMPLATE)
         
     def _load_agent_config(self): 
@@ -68,6 +68,8 @@ class SequentialAgentOrchestrator(AbstractProxy):
             prompt = message
             if self._carry_over_user_prompt and len(prev_responses) > 0:
                 prompt = self._carry_over_template.format(AGENT_RESPONSES="\n\n".join([f"{agent.name}:\n{response.message}" for agent, response in prev_responses]), USER_PROMPT=message)
+            elif len(prev_responses) > 0:
+                prompt = prev_responses[-1][1].message
 
             ctx = context.clone_for_single_shot()
             response = agent.process_message(prompt, ctx)
