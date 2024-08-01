@@ -1,6 +1,6 @@
 [project]
 name = "aiproxy"
-version = "0.1.45"
+version = "0.1.46"
 authors = [
   { name="Stricko", email="adams@strickos.com" },
 ]
@@ -20,7 +20,8 @@ dependencies = [
   'azure-messaging-webpubsubservice', 
   'azure-search-documents', 
   'azure-identity',
-  'pillow'
+  'pillow',
+  'markdownify'
 ]
 
 [project.urls]
