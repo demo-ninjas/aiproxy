@@ -46,6 +46,9 @@ def agent_factory(config: dict|str|ChatConfig, **kwargs) -> Agent:
     elif agent_type == 'url' or agent_type == 'url-agent' or agent_type == 'urlagent':
         from .url_agent import UrlAgent
         agent = UrlAgent(name, description, config, **kwargs)
+    elif agent_type == 'html-parser' or agent_type == 'html' or agent_type == 'htmlparser' or agent_type == 'html-parser-agent':
+        from .html_parser_agent import HtmlPaserAgent
+        agent = HtmlPaserAgent(name, description, config, **kwargs)
     elif agent_type == 'html-markdown' or agent_type == 'markdown' or agent_type == 'htmlmarkdown':
         from .html_markdown_agent import HtmlMarkdownAgent
         agent = HtmlMarkdownAgent(name, description, config, **kwargs)

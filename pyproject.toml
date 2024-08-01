@@ -1,6 +1,6 @@
 [project]
 name = "aiproxy"
-version = "0.1.47"
+version = "0.1.48"
 authors = [
   { name="Stricko", email="adams@strickos.com" },
 ]
@@ -21,7 +21,8 @@ dependencies = [
   'azure-search-documents', 
   'azure-identity',
   'pillow',
-  'markdownify'
+  'markdownify',
+  'beautifulsoup4'
 ]
 
 [project.urls]

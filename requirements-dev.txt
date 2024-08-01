@@ -10,3 +10,4 @@ azure-storage-blob
 python-dotenv
 pillow
 markdownify
+beautifulsoup4
