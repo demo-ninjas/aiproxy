@@ -60,7 +60,7 @@ class MultiAgentOrchestrator(AbstractProxy):
     def _load_interpreter(self):
         interp_config = self._config.get("interpreter") or self._config.get("interp") or None
         self._interpreter = GLOBAL_PROXIES_REGISTRY.load_proxy(interp_config, CompletionsProxy)
-        self._interp_template = self._config.get("interpreter-prompt") or self._config.get('interp-prompt') or self._config.get("system-message", None) or _DEFAULT_INTERPETER_PROMPT
+        self._interp_template = self._config.get("interpreter-prompt") or self._config.get('interp-prompt') or self._config.get("system-prompt", None) or self._config.get("system-message", None) or _DEFAULT_INTERPETER_PROMPT
         
     def _load_agent_config(self): 
         agent_configs = self._config["agents"]

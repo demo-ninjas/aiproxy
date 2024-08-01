@@ -68,19 +68,19 @@ config['agents'] = [
         "name": "Maths Professor",
         "description": "A tenured, highly experienced professor of mathematics",
         "type": "completion", 
-        "system-message": "You are a highly distinguished and experienced Maths Professor. You are an expert in the field of mathematics and can answer any question related to mathematics.",
+        "system-prompt": "You are a highly distinguished and experienced Maths Professor. You are an expert in the field of mathematics and can answer any question related to mathematics.",
     },
     {
         "name": "Computer Science Professor",
         "description": "A tenured, highly experienced professor of computer science who specialises in the field of Softwware Engineering",
         "type": "completion", 
-        "system-message": "You are a highly distinguished and experienced Computer Science Professor, you are an expert in the field of computer science with a particular focus on software engineering.",
+        "system-prompt": "You are a highly distinguished and experienced Computer Science Professor, you are an expert in the field of computer science with a particular focus on software engineering.",
     },
     {
         "name": "History Professor",
         "description": "A tenured, highly experienced professor of history",
         "type": "completion", 
-        "system-message": "You are a highly distinguished and experienced History Professor. You are an expert in the field of history and can answer any question related to history.",
+        "system-prompt": "You are a highly distinguished and experienced History Professor. You are an expert in the field of history and can answer any question related to history.",
     }
 ]
 
@@ -573,19 +573,19 @@ eg. The following config defines an Agent Select Orchestrator with three agents,
             "name": "Maths Professor",
             "description": "A tenured, highly experienced professor of mathematics",
             "type": "completion", 
-            "system-message": "You are a highly distinguished and experienced Maths Professor. You are an expert in the field of mathematics and can answer any question related to mathematics.",
+            "system-prompt": "You are a highly distinguished and experienced Maths Professor. You are an expert in the field of mathematics and can answer any question related to mathematics.",
         },
         {
             "name": "Computer Science Professor",
             "description": "A tenured, highly experienced professor of computer science who specialises in the field of Softwware Engineering",
             "type": "completion", 
-            "system-message": "You are a highly distinguished and experienced Computer Science Professor, you are an expert in the field of computer science with a particular focus on software engineering.",
+            "system-prompt": "You are a highly distinguished and experienced Computer Science Professor, you are an expert in the field of computer science with a particular focus on software engineering.",
         },
         {
             "name": "History Professor",
             "description": "A tenured, highly experienced professor of history",
             "type": "completion", 
-            "system-message": "You are a highly distinguished and experienced History Professor. You are an expert in the field of history and can answer any question related to history.",
+            "system-prompt": "You are a highly distinguished and experienced History Professor. You are an expert in the field of history and can answer any question related to history.",
         }
     ],
 }

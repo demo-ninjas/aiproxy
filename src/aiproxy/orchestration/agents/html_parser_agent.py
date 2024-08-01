@@ -14,8 +14,8 @@ class HtmlPaserAgent(Agent):
     def __init__(self, name:str = None, description:str = None, config:dict = None) -> None:
         super().__init__(name, description, config)
         
-        self.extraction_rules = self.config.get("extraction-rules") or self.config.get("rules") or self.extraction_rules
-        self.convert_to_string = self.config.get("convert-to-string") or self.config.get('as-string') or True
+        self.extraction_rules = self.config.get("extraction-rules", self.config.get("rules", self.extraction_rules))
+        self.convert_to_string = self.config.get("convert-to-string", self.config.get('as-string', True))
         self.soup_parser = self.config.get("soup-parser") or 'html.parser'
 
     def reset(self):
@@ -30,7 +30,7 @@ class HtmlPaserAgent(Agent):
                 rule_name = rule.get("name")
                 rule_action = rule.get("action")
                 rule_selector = rule.get("selector")
-                rule_attr = rule.get("attr") or rule.get('attribute')
+                rule_attr = rule.get("attr") or rule.get('attrs') or rule.get('attribute') or rule.get('attributes')
                 rule_limit = rule.get("limit") or None
                 rule_index = rule.get("index")
                 rule_default = rule.get("default")
@@ -67,48 +67,12 @@ class HtmlPaserAgent(Agent):
                     if rule_index is not None and rule_index >= 0 and rule_index < len(elements):
                         ## Pick a specific element from the list
                         element = elements[rule_index]
-                        if rule_attr is not None:
-                            if ',' in rule_attr:
-                                attrs = rule_attr.split(',')
-                                data = {}
-                                for attr in attrs:
-                                    attr_name = attr
-                                    attr_value = attr
-                                    if ':' in attr:
-                                        attr_name, attr_value = attr.split(':')
-
-                                    if attr_value == "text":
-                                        attr_value = element.get_text()
-                                    elif attr_value.startswith("select("):
-                                        attr_value = element.select(attr[7:-1]).get_text()
-                                    else:
-                                        attr_value = element.get(attr)
-                                    data[attr_name] = attr_value
-
-                                write_to[rule_name] = data
-                            else: 
-                                attr_name = rule_name
-                                attr_value = attr
-                                if ':' in attr:
-                                    attr_name, attr_value = attr.split(':')
-                                
-                                if attr_value == "text":
-                                    write_to[attr_name] = element.get_text()
-                                elif attr_value.startswith("select("):
-                                    write_to[attr_name] = element.select(attr[7:-1]).get_text()
-                                else:
-                                    write_to[attr_name] = element.get(rule_attr)
-                        else:
-                            write_to[rule_name] = element if rule_store_tmp else element.get_text()
+                        write_to[rule_name] = self.process_element(rule_attr, rule_store_tmp, element)
                     else:
-                        if rule_attr is not None:
-                            if rule_attr == "text":
-                                write_to[rule_name] = element.get_text()
-                            else:
-                                write_to[rule_name] = element.get(rule_attr)
-                        else:
-                            write_to[rule_name] = elements if rule_store_tmp else [ e.get_text() for e in elements ]
-
+                        data = []
+                        for element in elements:
+                            data.append(self.process_element(rule_attr, rule_store_tmp, element))
+                        write_to[rule_name] = data
             response = ChatResponse()
             if self.convert_to_string:
                 response.message = json.dumps(result)
@@ -120,3 +84,42 @@ class HtmlPaserAgent(Agent):
             response.error = True
             response.message = f"Error parsing HTML: {str(e)}"
             return response
+
+    def process_element(self, rule_attr, rule_store_tmp, element):
+        if rule_attr is not None:
+            data = {}
+            for attr in rule_attr: 
+                attr_name = attr.get('name')
+                attr_selector = attr.get('selector')
+                attr_args = attr.get('args')
+            
+                if attr_selector is None:
+                    attr_selector = 'find'
+                
+                attr_value = None
+                if attr_selector == 'find':
+                    attr_value = element.find(**attr_args)
+                elif attr_selector == 'find_all':
+                    attr_value = element.find_all(**attr_args)
+                elif attr_selector == 'select':
+                    attr_value = element.select(**attr_args)
+                elif attr_selector == 'get':
+                    attr_value = element.get(**attr_args)
+                elif attr_selector == 'text':
+                    attr_value = element.get_text()
+                
+                if attr_value is not None:
+                    if type(attr_value) is list: 
+                        if len(attr_value) > 1:
+                            data[attr_name] = [ e.get_text() if type(e) is not str else e for e in attr_value ]
+                        elif len(attr_value) == 1:
+                            data[attr_name] = attr_value[0].get_text() if type(attr_value[0]) is not str else attr_value[0]
+                        else:
+                            data[attr_name] = None
+                    elif type(attr_value) is str:
+                        data[attr_name] = attr_value
+                    else:
+                        data[attr_name] = attr_value.get_text()
+            return data
+        else:
+            return element if rule_store_tmp else element.get_text()

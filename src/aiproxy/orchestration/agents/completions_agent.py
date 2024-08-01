@@ -18,7 +18,7 @@ class CompletionsAgent(Agent):
 
         proxy_name = self.config.get("proxy-name", name)
         self.proxy = GLOBAL_PROXIES_REGISTRY.load_proxy(proxy_name, CompletionsProxy)
-        self._custom_system_message = self.config.get("system-message", None)
+        self._custom_system_message = self.config.get("system-prompt") or self.config.get("system-message")
         self._custom_model = self.config.get("model", None)
         self._single_shot = self.config.get("single-shot", False)
         self._thread_isolated = self.config.get("thread-isolated", False)

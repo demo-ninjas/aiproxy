@@ -81,10 +81,13 @@ class ChatConfig:
                 return attr
             except: 
                 pass
+
+        if '-' in key: 
+            return self.get(key.replace('-', '_'))
         return None
 
     def __contains__(self, name:str):
-        return name in self.__dict__ or name in self.prompt_vars
+        return name in self.__dict__ or name in self.prompt_vars or name.replace('-', '_') in self.__dict__ or name.replace('-', '_') in self.prompt_vars
 
     def __setitem__(self, key:str, value:any):
         self.__dict__[key] = value    
@@ -92,6 +95,9 @@ class ChatConfig:
     def get(self, key:str, default_val:any = None) -> any:
         if key in self: 
             return self[key]
+        k2 = key.replace('-', '_')
+        if k2 in self: 
+            return self[k2]
         return default_val
 
     def load(name:str|dict, raise_if_not_found:bool = False) -> 'ChatConfig':

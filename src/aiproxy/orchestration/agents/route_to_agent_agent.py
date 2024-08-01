@@ -41,7 +41,7 @@ class RouteToAgentAgent(Agent):
             self._agents = agents
             proxy_name = name
         else: 
-            self._selector_prompt_template = self.config.get("selector-prompt", None) or self.config.get("selector", None) or self.config.get("system-message", None) or _DEFAULT_SELECTOR_PROMPT
+            self._selector_prompt_template = self.config.get("selector-prompt", None) or self.config.get("selector", None) or self.config.get("system-message", None) or self.config.get("system-prompt", None) or _DEFAULT_SELECTOR_PROMPT
             self._custom_model = self.config.get("model", None)
             self._agents = agents or self.config.get("agents") or []
             proxy_name = self.config.get("proxy-name", name)
