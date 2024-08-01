@@ -30,7 +30,7 @@ class HtmlPaserAgent(Agent):
                 rule_name = rule.get("name")
                 rule_action = rule.get("action")
                 rule_selector = rule.get("selector")
-                rule_attr = rule.get("attr")
+                rule_attr = rule.get("attr") or rule.get('attribute')
                 rule_limit = rule.get("limit") or None
                 rule_index = rule.get("index")
                 rule_default = rule.get("default")
@@ -47,7 +47,6 @@ class HtmlPaserAgent(Agent):
                     write_to[rule_name] = rule_default
                     continue
 
-                ## Process Element List...
                 elements = None
                 rule_action = rule_action.lower()
                 if rule_action == "select":
@@ -59,6 +58,8 @@ class HtmlPaserAgent(Agent):
                 elif rule_action == "find_all":
                     elements = basis.find_all(rule_selector, limit=rule_limit)
                 
+
+                ## Process Element List...
                 if elements is None or len(elements) == 0:
                     if rule_default is not None:
                         write_to[rule_name] = rule_default
@@ -67,8 +68,21 @@ class HtmlPaserAgent(Agent):
                         ## Pick a specific element from the list
                         element = elements[rule_index]
                         if rule_attr is not None:
-                            if rule_attr == "text":
+                            if ',' in rule_attr:
+                                attrs = rule_attr.split(',')
+                                data = {}
+                                for attr in attrs:
+                                    if attr == "text":
+                                        data[attr] = element.get_text()
+                                    elif attr.startswith("select("):
+                                        data[attr] = element.select(attr[7:-1]).get_text()
+                                    else:
+                                        data[attr] = element.get(attr)
+                                write_to[rule_name] = data
+                            elif rule_attr == "text":
                                 write_to[rule_name] = element.get_text()
+                            elif attr.startswith("select("):
+                                write_to[rule_name] = element.select(attr[7:-1]).get_text()
                             else:
                                 write_to[rule_name] = element.get(rule_attr)
                         else:
