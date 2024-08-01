@@ -27,14 +27,14 @@ Please provide a response to the user prompt, considering the responses from the
 
 class SequentialAgentOrchestrator(AbstractProxy):
     _agents:list[Agent] = None
-    _carry_over_user_prompt:bool = True
+    _carry_over_user_prompt:bool = False
     _carry_over_template:str = None
 
 
     def __init__(self, config: ChatConfig | str) -> None:
         super().__init__(config)
         self._load_agent_config()
-        self._carry_over_user_prompt = self._config.get("carry-over-user-prompt", self._config.get("carry-over", self._config.get("carry-over-prompt", True)))
+        self._carry_over_user_prompt = self._config.get("carry-over-user-prompt", self._config.get("carry-over", self._config.get("carry-over-prompt", False)))
         self._carry_over_template = self._config.get("carry-over-template", CARRY_OVER_TEMPLATE)
         
     def _load_agent_config(self): 

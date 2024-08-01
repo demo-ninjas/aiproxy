@@ -535,6 +535,7 @@ Follow are the list of AI Prompt Orchestrators currently implemented:
 * **Agent Select Orchestator** - For a given prompt will choose an agent from a list of agents to fulfill the prompt
 * **Multi-Agent Orchestrator** - Pass the prompt to multiple agents then interpret their responses into a single succinct response
 * **Step-plan Orchestrator** - For a given prompt, write a plan for how to fulfill the prompt's goal, then execute each step in the plan and finally respond based on the outcome of the plan
+* **Sequential-Agents Orchestrator** - Sequentially prompt each agent, passing the response from the previous agent to the next. The final agent in the list is the ultimate responder to the original prompt.
 
 
 To load an orchestrator, use the `orchestrator_factory`, passing a config (or the name of a config).
@@ -677,6 +678,27 @@ Following are the available configuration options you can use to customise the o
 * `include-step-names-in-result` - A boolean flag indicating whether or not to include a list of the step names in the metadata of the responsse 
 
 
+### Sequential-Agents Orchestrator
+
+
+The sequential-agent orchestrator calls each agent in sequence, passing the response from the previous agent to the next.
+
+The pattern is as follows: 
+* Pass user prompt to first agent
+* Pass response from first agent to second agent
+* Continue for each agent in list 
+* Response from final agent is returned
+
+You can optionally collect up all the responses and carry them, along with the original user-prompt, to each subsequent agent.
+To enable this, set the `carry-over-prompt` config to `true`.
+
+If you enable carry over, a default template is used to construct the subsequent prompts, however if you wish to provide a custom one, you can do that using the `carry-over-template` config field (you must have both the '{AGENT_RESPONSES}' and '{USER_PROMPT}' parameters in your custom template).
+
+#### Configuring the Agent List
+
+The agent list is configured in the same way as the `Agent Select Orchestrator` (as described above), so add an `agents` config entry, which should contain a list of the agents (either their names or configs).
+
+
 
 ## Agents
 
@@ -689,8 +711,13 @@ The current list of built in agents is:
 * **Completions Agent** - An agent that passes the prompt directly to a Completions Proxy
 * **Assistants Agent** - An agent that passes the prompt directly to an Assistants Proxy 
 * **Function Agent** - An agent that invokes the configured function using the prompt as the function args (assumed to be a JSON string of the args)
-* **Orchestrator Proxxy Agent** - An agent that passes the prompt to a configured orchestrator
+* **Orchestrator Proxy Agent** - An agent that passes the prompt to a configured orchestrator
 * **Route to Agent Agent** - An agent that given a list of other agents (or their names), selects for a given prompt the best agent to respond and uses that agent to respond to the prompt
+* **URL Agent** - An agent that retrieves the contents from a configured URL and returns the response
+* **HTML Parser Agent** - An agent that parses an HTML document and returns select portions of the document based on a set of configurable rules
+* **HTML Markdown Agent** - An agent that converts an HTML document to Markdown
+* **Image Analyser Agent** - An agent that uses a GPT model to analyse an image, also when reqiuired, intelligently breaks up images into smaller chunks if the image it large or needs more focussed analysis
+
 
 
 To load an agent, use the `agent_factory`, like this: 
