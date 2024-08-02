@@ -160,7 +160,7 @@ etc...
 
 [END_STEP_OUTCOMES]
 
-For each context variable referenced in the steps, you can obtain the value of the variable by using the function 'get_dict_val' with the variable name as the argument (eg. 'get_dict_val({"key":"variable_name"})').
+For each context variable referenced in the steps, you can obtain the value of the variable by using the function 'get_dict_val' with the variable name as the argument (eg. 'get_dict_val({{"key":"variable_name"}})').
 
 The planner AI has suggested the following context variables are likely to be of use when generating your response, provided below between [DATA] and [END_DATA]
 
