@@ -64,7 +64,7 @@ def search(
         source:Annotated[str|None, "The name of the source configuration to use for the search"] = None
         ) -> list:
     search_client,source_config = get_azure_search_client(source)
-    vec_tokens = encode_query(query, source_config.embedding_model) if vectorSearch else None
+    vec_tokens = encode_query(query, source_config.embedding_model) if vectorSearch and source_config.vector_fields is not None else None
 
     if vec_tokens is None: 
         result = search_client.search(search_text=query, include_total_count=True, facets=facets, 
@@ -75,10 +75,12 @@ def search(
                                       semantic_configuration_name=source_config.semantic_config
                                       )
     else: 
-        vec_queries = []
-        for vec_config in source_config.vector_fields:
-            q_tokens = vec_tokens + [0] * (int(vec_config.dim) - len(vec_tokens))
-            vec_queries.append(VectorizedQuery(vector=q_tokens, fields=vec_config.field, k_nearest_neighbors=int(vec_config.knn or "3")))
+        vec_queries = None
+        if source_config.vector_fields is not None and len(source_config.vector_fields) > 0:
+            vec_queries = []
+            for vec_config in source_config.vector_fields:
+                q_tokens = vec_tokens + [0] * (int(vec_config.dim) - len(vec_tokens))
+                vec_queries.append(VectorizedQuery(vector=q_tokens, fields=vec_config.field, k_nearest_neighbors=int(vec_config.knn or "3")))
         
         result = search_client.search(search_text=query, include_total_count=True, vector_queries=vec_queries, facets=facets, 
                                       query_type="full" if complexQuery else "semantic" if source_config.semantic_config is not None and useSemanticRanking == True else "simple", 
