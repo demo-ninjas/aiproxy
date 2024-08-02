@@ -3,6 +3,7 @@ import logging
 from aiproxy import ChatContext, ChatResponse
 from aiproxy.proxy import CompletionsProxy, GLOBAL_PROXIES_REGISTRY
 from ..agent import Agent
+from ..agents import agent_factory
 
 _DEFAULT_SELECTOR_PROMPT = """You are tasked with selecting the best agent to handle the provided user prompt. 
 Please select the agent that you believe is best suited to handle the user prompt by returning only the agent name.
@@ -31,6 +32,7 @@ class RouteToAgentAgent(Agent):
     _selector_prompt_template:str = None
     _custom_model:str = None
     _agents:list[Agent]
+    _agent_list:str = None
     _selector_prompt:str = None
 
     def __init__(self, name:str = None, description:str = None, config:dict = None, agents:list[Agent] = None) -> None:
@@ -43,15 +45,23 @@ class RouteToAgentAgent(Agent):
         else: 
             self._selector_prompt_template = self.config.get("selector-prompt", None) or self.config.get("selector", None) or self.config.get("system-message", None) or self.config.get("system-prompt", None) or _DEFAULT_SELECTOR_PROMPT
             self._custom_model = self.config.get("model", None)
-            self._agents = agents or self.config.get("agents") or []
+            if agents is None:
+                agents = self.config.get("agents")
+                if type(agents) is str: 
+                    agents = agents.split(",")
+                if type(agents) is list:
+                    agents = [agent_factory(agent_name.strip()) for agent_name in agents]
+            self._agents = agents or []
             proxy_name = self.config.get("proxy-name", name)
         
         self.proxy = GLOBAL_PROXIES_REGISTRY.load_proxy(proxy_name, CompletionsProxy)
+        self._agent_list = self._build_agent_list()
         
     def set_agents(self, agents:list[Agent]):
         if agents is None or len(agents) == 0: 
             raise AssertionError("No agents provided, you must provide at least one agent")
         self._agents = agents
+        self._agent_list = self._build_agent_list()
 
     def _build_agent_list(self) -> str:
         agent_list = "\n"
@@ -64,7 +74,7 @@ class RouteToAgentAgent(Agent):
     
     def process_message(self, message:str, context:ChatContext) -> ChatResponse:
         prompt_context = context.clone_for_single_shot()
-        selector_prompt = self._selector_prompt_template.format(AGENT_LIST=self._build_agent_list(), USER_PROMPT=message)
+        selector_prompt = self._selector_prompt_template.format(AGENT_LIST=self._agent_list, USER_PROMPT=message)
         selector_response = self.proxy.send_message(selector_prompt, prompt_context, override_model=self._custom_model, use_functions=False)
         if selector_response.error or selector_response.filtered: 
             return selector_response

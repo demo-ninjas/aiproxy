@@ -30,6 +30,7 @@ class HtmlPaserAgent(Agent):
                 rule_name = rule.get("name")
                 rule_action = rule.get("action")
                 rule_selector = rule.get("selector")
+                rule_args = rule.get("extra-args") or rule.get("args") or {}
                 rule_attr = rule.get("attr") or rule.get('attrs') or rule.get('attribute') or rule.get('attributes')
                 rule_limit = rule.get("limit") or None
                 rule_index = rule.get("index")
@@ -50,13 +51,13 @@ class HtmlPaserAgent(Agent):
                 elements = None
                 rule_action = rule_action.lower()
                 if rule_action == "select":
-                    elements = basis.select(rule_selector, limit=rule_limit)
+                    elements = basis.select(rule_selector, limit=rule_limit, **rule_args)
                 elif rule_action == "find":
-                    e = basis.find(rule_selector, limit=rule_limit)
+                    e = basis.find(rule_selector, limit=rule_limit, **rule_args)
                     if e is not None:
                         elements = [ e ]
                 elif rule_action == "find_all":
-                    elements = basis.find_all(rule_selector, limit=rule_limit)
+                    elements = basis.find_all(rule_selector, limit=rule_limit, **rule_args)
                 
 
                 ## Process Element List...

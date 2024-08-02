@@ -24,8 +24,17 @@ class UrlAgent(Agent):
         if type(self._url_template_params) is str:
             self._url_template_params = self._url_template_params.split(",")
         if self._url_template_params is None and '{' in self._url and '}' in self._url:
-            raise AssertionError(f"The URL template parameters must be defined using the 'url-params' configuration")
-
+            ## Find all the Parameters in the URL and put their names in the url_template_params
+            self._url_template_params = []
+            pos = 0
+            while pos < len(self._url):
+                start = self._url.find('{', pos)
+                if start == -1: break
+                end = self._url.find('}', start)
+                if end == -1: break
+                self._url_template_params.append(self._url[start+1:end])
+                pos = end + 1
+                
         self._post_message_as_body = self.config.get("post-message-as-body") or self.config.get("message-as-body") or False
         self._method = self.config.get("method") or self.config.get("http-method") or "GET"
         self._headers = self.config.get("headers") or self.config.get("http-headers") or None

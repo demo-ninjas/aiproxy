@@ -800,15 +800,15 @@ There are a few built in agents, and you can provide your own as well.
 
 The current list of built in agents is: 
 
-* **Completions Agent** - An agent that passes the prompt directly to a Completions Proxy
-* **Assistants Agent** - An agent that passes the prompt directly to an Assistants Proxy 
-* **Function Agent** - An agent that invokes the configured function using the prompt as the function args (assumed to be a JSON string of the args)
-* **Orchestrator Proxy Agent** - An agent that passes the prompt to a configured orchestrator
-* **Route to Agent Agent** - An agent that given a list of other agents (or their names), selects for a given prompt the best agent to respond and uses that agent to respond to the prompt
-* **URL Agent** - An agent that retrieves the contents from a configured URL and returns the response
-* **HTML Parser Agent** - An agent that parses an HTML document and returns select portions of the document based on a set of configurable rules
-* **HTML Markdown Agent** - An agent that converts an HTML document to Markdown
-* **Image Analyser Agent** - An agent that uses a GPT model to analyse an image, also when reqiuired, intelligently breaks up images into smaller chunks if the image it large or needs more focussed analysis
+* [**Completions Agent**](#completions-agent) - An agent that passes the prompt directly to a Completions Proxy
+* [**Assistants Agent**](#assistants-agent) - An agent that passes the prompt directly to an Assistants Proxy 
+* [**Function Agent**](#function-agent) - An agent that invokes the configured function using the prompt as the function args (assumed to be a JSON string of the args)
+* [**Orchestrator Proxy Agent**](#orchestrator-proxy-agent) - An agent that passes the prompt to a configured orchestrator
+* [**Route to Agent Agent**](#route-to-agent-agent) - An agent that given a list of other agents (or their names), selects for a given prompt the best agent to respond and uses that agent to respond to the prompt
+* [**URL Agent**](#url-agent) - An agent that retrieves the contents from a configured URL and returns the response
+* [**HTML Parser Agent**](#html-parser-agent) - An agent that parses an HTML document and returns select portions of the document based on a set of configurable rules
+* [**HTML Markdown Agent**](#html-markdown-agent) - An agent that converts an HTML document to Markdown
+* [**Image Analyser Agent**](#image-analyser-agent) - An agent that uses a GPT model to analyse an image, also when reqiuired, intelligently breaks up images into smaller chunks if the image it large or needs more focussed analysis
 
 
 
@@ -876,3 +876,224 @@ from aiproxy.orchestration.agents import agent_factory
 agent = agent_factory('myapi-agent')
 ```
 
+
+
+### Completions Agent
+
+This agent is a simple proxy to the Completions Proxy - it will literally just pass the prompt directly to the completions proxy.
+
+You can configure this agent with the following config properties: 
+
+* `proxy-name` - Set the name of the proxy to load (if there is a specifically configured proxy with that name in the system that you want to use), rather than the default CompletionsProxy
+* `system-prompt` - Set the system prompt to use for conversations with this agent
+* `model` - Set the name of the model deployment to use 
+* `single-shot` - When set to `true`, this agent will always assume it's being used for single-shot conversations (it will ensure it's working in a completely isolated context and not save it's history)
+* `thread-isolated` - When set to `true`, this agent will work in an isolated thread, but will be enabled to save it's history
+
+
+### Assistants Agent
+
+This agent is a simple proxy to the Assistant Proxy - it will post the prompt into the assistant thread, trigger a run and wait for the outcome of the run before responding.
+
+You can configure the agent with the following config settings: 
+
+* `proxy-name` - Set the name of the proxy to load (if there is a specifically configured proxy with that name in the system that you want to use), rather than the default AssistantProxy
+* `assistant` - Set the name of the assistant to interact with
+* `thread-isolated` - When set to `true`, this agent will work in an isolated thread, but will be enabled to save it's history
+
+If you do not configure the assistant to use in the config, you can set the assistant by setting the `assistant` key in the context metadata.
+
+
+### Function Agent
+
+This agent will invoke the configured function using the prompt as the function arguments (it assumes the prompt is a JSON string that represents the arguments).
+
+Eg. Assume a function has 2 arguments: criteria (str) and count (int), then the prompt should look like this: 
+
+```JSON
+{ "criteria": "my search", "count":  10 }
+```
+
+You can configure the agent with the following config settings: 
+
+* `function` - The name of the function to invoke
+* `args` - A map of predefined arguments (will override the same arguments if they are supplied in the prompt)
+* `result-as-string` - When `true`, the result of the function will be cast to a string [Default: `true`] (Note: Objects will be written as JSON if they support it)
+
+### Orchestrator Proxy Agent
+
+This agent will pass the prompt to an orchestrator - which can be useful when you want an orchestrator to use another orchestrator as one of it's agents.
+
+You can configure the agent with the following config settings: 
+
+* `orchestrator` - The name of the orchestrator to load
+* `orchestrator-type` - If you want to use a different name to the type, this allows you to specify the type of orchestrator to use
+* `single-shot` - When set to `true`, this agent will always assume it's being used for single-shot conversations (it will ensure it's working in a completely isolated context and not save it's history)
+* `thread-isolated` - When set to `true`, this agent will work in an isolated thread, but will be enabled to save it's history
+
+### Route to Agent Agent
+
+This agent will, given a prompt, choose which agent, from a list of agents, should response to the prompt. 
+It will then pass the prompt to the selected agent and return it's response.
+
+You can configure this agent with the following config settings: 
+
+* `agents` - The list of agents to choose from (names or configs of agents)
+* `selector-prompt` - Allows you to override the default prompt used for selecting agents (you must include the `{AGENT_LIST}` and `{USER_PROMPT}` variables in your prompt)
+* `model` - The name of the model deployment to use for the selector
+* `proxy-name` - The name of the proxy to use (if you want to use a different proxy to the default completions proxy)
+
+### URL Agent
+
+This agent will respond with the content obtained from the configured URL, optionally posting the prompt as the body content of the HTTP request.
+
+You can configure this agent with the following config settings: 
+
+* `url` - The URL to retrieve (or URL Template)
+* `message-as-body` - When `true`, the HTTP request body will be set to the prompt message (Default: `false`)
+* `method` - The HTTP method for the request (Default: `GET`)
+* `headers` - The headers to add to the request
+
+If the `url` is a template with parameters, then those parameters will be retrieved from the context metadata.
+
+eg. Assume the `url` config is set to: `https://example.com/{customerid}?id={id}`
+
+And assume the context metadata has the following values: 
+```JSON 
+{
+    "customerid": "abc123", 
+    "plan": "Gold", 
+    "id": 456
+}
+```
+
+Then, the URL will be set to: `https://example.com/abc123?id=456`
+
+
+### HTML Parser Agent
+
+This agent expects to recieve an HTML (or XML) document as the prompt. It will parse the document using a `beautifulsoup` parser.
+
+The agent will build a response based on the extraction rules defined in the config.
+
+You can configure this agent with the following config settings: 
+
+* `extraction-rules` - An array of rules for extracting content from the document
+* `as-string` - When `true`, the extracted dictionary will be converted to a JSON string [Default: `true`]
+* `soup-parser` - Sets the parser to use [Default: `html.parser` (the built-in Python HTML parser)]
+
+Extract rules are defined as follows: 
+
+* `name` - The name of the field that the extracted content will be written to (either in the result or the temp storage)
+* `action` - The extract action to apply [Default: `select`]
+  * `select` - Perform a CSS selection operation (using the `selector`)
+  * `find` - Find the first matching element  (using the `selector`)
+  * `find_all` - Find all the matching elements (using the `selector`)
+* `selector` - The selector rule passed to the action (eg. `div[name=GridItem]`)
+* `args` - A dictionary of any extra arguments that should be passed to the action
+* `attrs` - If you wish to extract specific attribtues / elements from the matches, specify them as an array here (see below for details)
+* `limit` - Limit the number of elements matched by the action [Default: unlimited]
+* `index` - From the list of elements matched by the action, only extract the n'th element defined by this value
+* `default` - Specifies a default value to set the output field to if no elements match the action selector
+* `store-tmp` - When `true` the output of this rule will not be written to the result, but rather it will be written to a temporary storage that can be retrieved by a later rule
+* `var` - Run this rule on a previously stored rule result (where the value of `var` is the name of the rule to retrieve the value for)
+
+The attributes list defines the attributes to set on the output record for each matching element in the document.
+
+Each attribute is defined as follows: 
+
+* `name` - The name of the attribute to set
+* `selector` - The selector function to use, one of: 
+  * `find` - Find matching child elements
+  * `find_all` - Find all mathcing child elements
+  * `select` - Find using a CSS Selector
+  * `get` - Get the value of an attribute on the element
+  * `text` - The text content of the element (and it's children)
+* `args` - A dictionary of arguments to pass to the selector
+
+Here's an example config: 
+
+```JSON
+{
+    "id": "Parse HTML",
+    "type": "html-parser",
+    "rules": [
+    {
+        "name": "cards",
+        "selector": "div[data-component=item]",
+        "limit": 2,
+        "attributes": [
+        {
+            "args": {
+                "data-component": "description",
+                "name": "div"
+            },
+            "name": "description",
+            "selector": "find"
+        },
+        {
+            "args": {
+                "data-component": "heading",
+                "name": "h3"
+            },
+            "name": "title",
+            "selector": "find"
+        },
+        {
+            "args": {
+                "data-component": "summary",
+                "name": "div"
+            },
+            "name": "summary",
+            "selector": "find"
+        }
+        ]
+    }
+    ]
+}
+```
+
+This config will extract the first 2 divs with an attribute of "data-component" equal to "item". 
+Then, for each of those div, it will output a record with three fields: 
+* "title" - set to the text value of the child H3 element with the attribute "data-component=heading"
+* "description" - set to the text value of the child div with the attribute "data-component=description"
+* "summary" - set to the text value of the child div with the attribute "data-component=summary"
+
+eg. The output would look something like this: 
+```JSON
+[
+    { "title": "Card 1", "description": "The primary card", "summary": "A card that is about blah blah... " }, 
+    { "title": "Card 2", "description": "A second card", "summary": "A card that is about blah blah... " }
+]
+```
+
+### HTML Markdown Agent
+
+This agent expects to recieve an HTML document as the prompt, and returns the document converted into markdown.
+
+You can configure this agent using the following config settings:
+
+* `exclude-tags` - The HTML tags to exclude from the markdown output (As an array of strings, or a comma separated string)
+
+By default, the `exclude-tags` is set to: `["script", "style", "link", "head", "meta", "title"]`
+
+
+### Image Analyser Agent
+
+This agent expects to recieve an image as the prompt (either the raw bytes of the image or the base64 of the image).
+
+When the bytes of the image are provided, the image will be loaded and potentially split up into smaller overlapping images, allowing the GPT model to focus on more discrete areas of the image, rather than simply observe the image as a whole.
+
+You can configure this agent using the following config settings: 
+
+* `proxy-name` - The name of the proxy to use if you don't wish to use the default completions proxy
+* `system-prompt` - The system prompt to use for the GPT model
+* `analyse-prompt` - The prompt to send to the GPT model with the image  (Default: `process this image`)
+* `model` - The name of the model deployment to use
+* `single-shot` - When set to `true`, this agent will always assume it's being used for single-shot conversations (it will ensure it's working in a completely isolated context and not save it's history)
+* `thread-isolated` - When set to `true`, this agent will work in an isolated thread, but will be enabled to save it's history
+* `default-image-type` - When the image type cannot be determined, this is the fallback image type to specify the image as
+
+Note: You can specify a context metadata variable `file-extension` to set the image type on a per context basis.
+
+You can also specify a context metadata variable `slice-image` to `false` if you wish to prevent image splicing.

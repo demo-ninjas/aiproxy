@@ -117,7 +117,8 @@ class AnalyseImageAgent(Agent):
 
             
             # Check with the context if the it knows the extension of the image
-            img_ext = context.get_metadata("image-extension", image.format or self._default_image_extension)
+            img_ext = context.get_metadata("image-extension") or context.get_metadata("file-extension") or image.format or self._default_image_extension
+            # img_ext = context.get_metadata("image-extension", image.format or self._default_image_extension)
         
             for tile in tiles:
                 # Convert the image to base64
@@ -139,8 +140,9 @@ class AnalyseImageAgent(Agent):
 
             context.set_metadata("image-tiles", len(tiles))
         else:
-             # Check with the context if the it knows the extension of the image
-            img_ext = context.get_metadata("image-extension", self._default_image_extension)
+            # Check with the context if the it knows the extension of the image
+            img_ext = context.get_metadata("image-extension") or context.get_metadata("file-extension") or self._default_image_extension
+            # img_ext = context.get_metadata("image-extension", self._default_image_extension)
             img_str = base64.b64encode(message).decode()
             content.append({
                 "type": "image_url",
