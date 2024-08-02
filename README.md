@@ -1,6 +1,6 @@
 
 <h1 align="center">
-  :black_circle: Azure OpenAI Chat Proxy Library :black_circle:
+  :robot: Azure OpenAI Chat Proxy Library :toolbox:
 </h1>
 
 > [!IMPORTANT]
