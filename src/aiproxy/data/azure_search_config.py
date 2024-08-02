@@ -2,9 +2,9 @@ from aiproxy.utils.config import load_named_config
 ROOT_CONFIG_NAME = "ROOT"
 
 class AzureSearchVectorFieldConfig:
-    field:str
-    dim:int
-    knn:int
+    field:str = None
+    dim:int = None
+    knn:int = None
 
     def __init__(self, field:str = None, dim:int = 1024, knn:int = 5) -> None:
         self.field = field
@@ -12,14 +12,14 @@ class AzureSearchVectorFieldConfig:
         self.knn = knn
 
 class AzureSearchConfig:
-    endpoint:str
-    key:str
-    index_name:str
-    connection_string:str
-    embedding_model:str
-    semantic_config:str
-    scoring_profile:str
-    vector_fields:list[AzureSearchVectorFieldConfig]
+    endpoint:str = None
+    key:str = None
+    index_name:str = None
+    connection_string:str = None
+    embedding_model:str = None
+    semantic_config:str = None
+    scoring_profile:str = None
+    vector_fields:list[AzureSearchVectorFieldConfig] = None
 
     def load_config(config_name:str) -> 'AzureSearchConfig': 
         if config_name is None or config_name.upper() == ROOT_CONFIG_NAME:

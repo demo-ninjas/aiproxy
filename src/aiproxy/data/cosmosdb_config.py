@@ -2,11 +2,11 @@
 ROOT_CONFIG_NAME = "ROOT"
 
 class CosmosDBConfig:
-    host:str
-    key:str
-    database_id:str
-    container_id:str
-    connection_string:str
+    host:str = None
+    key:str = None
+    database_id:str = None
+    container_id:str = None
+    connection_string:str = None
 
     def load_config(config_name:str) -> 'CosmosDBConfig': 
         from aiproxy.utils.config import load_named_config
