@@ -156,7 +156,7 @@ def load_configs(only_public:bool = True) -> list[dict]:
     try:
         config_items = get_all_items(source=cosmos_config_name)
         for item in config_items:
-            if not only_public or item["public"] == True:
+            if not only_public or item.get("public", False) == True:
                 name = item.get("name") or item.get('id') or None
                 if name is not None: 
                     data = { 'name':name }

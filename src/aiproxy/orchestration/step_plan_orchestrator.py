@@ -145,7 +145,22 @@ They are in the form of a JSON array of steps, where each step is a dictionary w
 
 [END_STEPS]
 
-For each context variable referenced in the steps, you can obtain the value of the variable by using the function 'get_dict_val' with the variable name as the argument.
+For each step above that produced data, the outcome is listed below in the following format: 
+Step: <Step Name> [Variable: <Variable Name>]
+<Data Produced>
+
+Step: <Step Name> [Variable: <Variable Name>]
+<Data Produced>
+
+etc...
+
+[STEP_OUTCOMES]
+
+{step_outcomes}
+
+[END_STEP_OUTCOMES]
+
+For each context variable referenced in the steps, you can obtain the value of the variable by using the function 'get_dict_val' with the variable name as the argument (eg. 'get_dict_val({"key":"variable_name"})').
 
 The planner AI has suggested the following context variables are likely to be of use when generating your response, provided below between [DATA] and [END_DATA]
 
@@ -417,7 +432,7 @@ class StepPlanOrchestrator(AbstractProxy):
         recent_conversation = self._build_recent_conversation(context)
 
         ## Data Varaibles
-        data_string = ''
+        data_string = 'No data provided by the planner'
         if data is not None: 
             data_string = 'Specific Data Points listed below:\n'
             if type(data) is str:
@@ -426,30 +441,21 @@ class StepPlanOrchestrator(AbstractProxy):
                 data = data.values()
             data_string = "\n* ".join([ item for item in data ])
         
-        data_string += """
-For each step that produced data, the outcome is listed below in the following format: 
-Step: <Step Name>
-<Data Produced>
-
-Step: <Step Name>
-<Data Produced>
-
-etc...
-
-[Start of Step Outcomes]
-"""
+        step_outcomes = ""
         for step in steps: 
             output_var = step.get('output')
             if output_var is not None:
-                var = vars.get(output_var)
+                var_name = output_var
+                if var_name.startswith("$"):
+                    var_name = var_name[1:]
+                var = vars.get(var_name)
                 if var is not None:
                     var_str = str(var)
                     if type(var) is dict or type(var) is list:
                         var_str = json.dumps(var, indent=2)
                     if len(var_str) > 1000:
                         var_str = var_str[:1000] + "...truncated [use 'get_dict_val({ \"key\":\"" + output_var + "\")' to retrieve whole value]..."
-                    data_string += f"\nStep: {step.get('name')}\n{var}\n"
-        data_string += "\n[End of Step Outcomes]\n"
+                    step_outcomes += f"\nStep: {step.get('name')} [Variable: {output_var}]\n{var_str}\n"
 
         prompt = self._final_response_template.format(
             preamble=self._responder_preamble or '',
@@ -457,6 +463,7 @@ etc...
             intent=intent or 'Not Provided',
             hint=hint or 'Not Provided',
             data_string=data_string,
+            step_outcomes=step_outcomes,
             recent_messages=recent_conversation,
             steps=json.dumps(steps, indent=2)
         )
@@ -475,6 +482,9 @@ etc...
             if func_def.name == 'get_dict_val': 
                 if args.get('obj') is None: 
                     args['obj'] = vars
+                if 'key' in args and args['key'].startswith("$"):
+                    args['key'] = args['key'][1:]
+
             return args
         resp_context.function_args_preprocessor = args_preprocessor
 
