@@ -417,13 +417,39 @@ class StepPlanOrchestrator(AbstractProxy):
         recent_conversation = self._build_recent_conversation(context)
 
         ## Data Varaibles
-        data_string = 'Not Provided'
+        data_string = ''
         if data is not None: 
+            data_string = 'Specific Data Points listed below:\n'
             if type(data) is str:
                 data = data.split(',')
             elif type(data) is dict: 
                 data = data.values()
             data_string = "\n* ".join([ item for item in data ])
+        
+        data_string += """
+For each step that produced data, the outcome is listed below in the following format: 
+Step: <Step Name>
+<Data Produced>
+
+Step: <Step Name>
+<Data Produced>
+
+etc...
+
+[Start of Step Outcomes]
+"""
+        for step in steps: 
+            output_var = step.get('output')
+            if output_var is not None:
+                var = vars.get(output_var)
+                if var is not None:
+                    var_str = str(var)
+                    if type(var) is dict or type(var) is list:
+                        var_str = json.dumps(var, indent=2)
+                    if len(var_str) > 1000:
+                        var_str = var_str[:1000] + "...truncated [use 'get_dict_val({ \"key\":\"" + output_var + "\")' to retrieve whole value]..."
+                    data_string += f"\nStep: {step.get('name')}\n{var}\n"
+        data_string += "\n[End of Step Outcomes]\n"
 
         prompt = self._final_response_template.format(
             preamble=self._responder_preamble or '',
@@ -446,6 +472,9 @@ class StepPlanOrchestrator(AbstractProxy):
                 args['vars'] = vars
             if 'steps' in func_def.args:
                 args['steps'] = steps
+            if func_def.name == 'get_dict_val': 
+                if args.get('obj') is None: 
+                    args['obj'] = vars
             return args
         resp_context.function_args_preprocessor = args_preprocessor
 
