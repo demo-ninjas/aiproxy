@@ -80,10 +80,19 @@ class FunctionRegistry:
         fdef = self.functions.get(name)
         if fdef is None:
             fdef = self.aliases.get(name)
+        ## Check if the function was misspelt by the AI (eg. swapping '-' and '_' in the name)
+        name_alterations = [name.replace('-', '_'), name.replace('_', '-'), name.replace(' ', '-') , name.replace(' ', '_')]
+        for alt_name in name_alterations:
+            if fdef is None:
+                fdef = self.functions.get(alt_name)
+            if fdef is None:
+                fdef = self.aliases.get(alt_name)
+            if fdef is not None:
+                break
         return fdef
 
     def __contains__(self, name:str):
-        return name in self.functions or name in self.aliases
+        return self.__getitem__(name) is not None
 
 GLOBAL_FUNCTIONS_REGISTRY = FunctionRegistry()
 GLOBAL_FUNCTIONS_FILTER = lambda x,y: True
