@@ -548,11 +548,11 @@ proxy = orchestrator_factory({ "name":"my-proxy", "type":"completions" })
 Follow are the list of AI Prompt Orchestrators currently implemented: 
 
 * **All of the Proxies** - eg. Completions, Assistants, etc...
-* **Agent Select Orchestator** - For a given prompt will choose an agent from a list of agents to fulfill the prompt
-* **Multi-Agent Orchestrator** - Pass the prompt to multiple agents then interpret their responses into a single succinct response
-* **Step-plan Orchestrator** - For a given prompt, write a plan for how to fulfill the prompt's goal, then execute each step in the plan and finally respond based on the outcome of the plan
-* **Sequential-Agents Orchestrator** - Sequentially prompt each agent, passing the response from the previous agent to the next. The final agent in the list is the ultimate responder to the original prompt.
-* **Group Chat Consensus Orchestrator** - Conducts a coordinated group chat with a group of agents, and once a consensus is agreed by the majority of participating agents, provides the outcome of the chat.
+* [**Agent Select Orchestator**](#agent-select-orchestrator) - For a given prompt will choose an agent from a list of agents to fulfill the prompt
+* [**Multi-Agent Orchestrator**](#multi-agent-orchestrator) - Pass the prompt to multiple agents then interpret their responses into a single succinct response
+* [**Step-plan Orchestrator**](#step-plan-orchestrator) - For a given prompt, write a plan for how to fulfill the prompt's goal, then execute each step in the plan and finally respond based on the outcome of the plan
+* [**Sequential-Agents Orchestrator**](#sequential-agents-orchestrator) - Sequentially prompt each agent, passing the response from the previous agent to the next. The final agent in the list is the ultimate responder to the original prompt.
+* [**Group Chat Consensus Orchestrator**](#group-chat-consensus-orchestrator) - Conducts a coordinated group chat with a group of agents, and once a consensus is agreed by the majority of participating agents, provides the outcome of the chat.
 
 
 To load an orchestrator, use the `orchestrator_factory`, passing a config (or the name of a config).
