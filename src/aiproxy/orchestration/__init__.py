@@ -27,6 +27,9 @@ def orchestrator_factory(config: dict|str|ChatConfig, **kwargs) -> AbstractProxy
     elif orchestrator_type == "step" or orchestrator_type == "steporchestrator" or orchestrator_type == "step-plan" or orchestrator_type == "stepplanorchestrator":
         from .step_plan_orchestrator import StepPlanOrchestrator
         return GLOBAL_PROXIES_REGISTRY.load_proxy(config, StepPlanOrchestrator, **kwargs)
+    elif orchestrator_type == "consensus" or orchestrator_type == "consensusorchestrator" or orchestrator_type == "group-chat" or orchestrator_type == "groupchatorchestrator":
+        from .consensus_orchestrator import ConsensusOrchestrator
+        return GLOBAL_PROXIES_REGISTRY.load_proxy(config, ConsensusOrchestrator, **kwargs)
     elif orchestrator_type == "multiagent" or orchestrator_type == "multi-agent" or orchestrator_type == "multiagentorchestrator":
         from .multi_agent_orchestrator import MultiAgentOrchestrator
         return GLOBAL_PROXIES_REGISTRY.load_proxy(config, MultiAgentOrchestrator, **kwargs)

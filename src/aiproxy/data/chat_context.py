@@ -52,8 +52,11 @@ class ChatContext:
             metadata_transient_keys=self.metadata_transient_keys, 
         )
 
-    def init_history(self, thread_id:str, system_prompt:str = None):
-        if thread_id is not None: 
+    def init_history(self, thread_id:str = None, system_prompt:str = None):
+        if thread_id is None and self.thread_id is None:
+            import uuid
+            self.thread_id = uuid.uuid4().hex
+        elif thread_id is not None: 
             self.thread_id = thread_id
         if self.history is not None and len(self.history) > 0: return   ## Already have history, no need to init...
 

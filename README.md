@@ -536,6 +536,7 @@ Follow are the list of AI Prompt Orchestrators currently implemented:
 * **Multi-Agent Orchestrator** - Pass the prompt to multiple agents then interpret their responses into a single succinct response
 * **Step-plan Orchestrator** - For a given prompt, write a plan for how to fulfill the prompt's goal, then execute each step in the plan and finally respond based on the outcome of the plan
 * **Sequential-Agents Orchestrator** - Sequentially prompt each agent, passing the response from the previous agent to the next. The final agent in the list is the ultimate responder to the original prompt.
+* **Group Chat Consensus Orchestrator** - Conducts a coordinated group chat with a group of agents, and once a consensus is agreed by the majority of participating agents, provides the outcome of the chat.
 
 
 To load an orchestrator, use the `orchestrator_factory`, passing a config (or the name of a config).
@@ -680,7 +681,6 @@ Following are the available configuration options you can use to customise the o
 
 ### Sequential-Agents Orchestrator
 
-
 The sequential-agent orchestrator calls each agent in sequence, passing the response from the previous agent to the next.
 
 The pattern is as follows: 
@@ -698,6 +698,82 @@ If you enable carry over, a default template is used to construct the subsequent
 
 The agent list is configured in the same way as the `Agent Select Orchestrator` (as described above), so add an `agents` config entry, which should contain a list of the agents (either their names or configs).
 
+
+
+### Group Chat Consensus Orchestrator
+
+The group chat orchestrator works with a group of agents to collectively agree to an outcome.
+
+The pattern is as follows: 
+* Two chat conversations are established, one with the user and one with the group of agents
+* The "co-ordinator" agent is the only agent that participates in both conversations
+* The coordinator starts by introducing the prompt to the agents
+* Then, the coordinator chooses an agent to speak and poses a prompt to that agent 
+* The agent responds (or declines to repond)
+* The coordinator then decides on one of three next steps: 
+  - Conclude the Conversation (outcome achieved)
+  - Pose a prompt/question to another agent (continue the conversation)
+  - Pose a question back to the user (pause the conversation)
+* This continues ongoingly until a consensus is reached, or a maximum number of turns is reached.
+
+#### Configuring the Agent list
+
+The agent list is configured in the same way as the `Agent Select Orchestrator` (as described above), so add an `agents` config entry, which should contain a list of the agents (either their names or configs).
+
+#### Configuring the Coordination
+
+You can set the maximum number of turns with the `max-turns` config property.
+
+To provide any rules for responding to the user, you can set them with the `summary-rules` config property (eg. `"summary-rules": "You must always respond in English"`)
+
+You can control the config for the coordinator agent by setting the `coordinator` config property (to either an agent config or the name of an agent config).
+
+You can control the config for the responding agent (agent that authors responses to the user) with the `responder` config property (as either an agent config or the name of an agent config).
+
+You can also override the prompt templates used by the coordinator + responder (before you do, make sure to look at the built in templates to ensure you're covering all expectations of the system).
+
+Here's the templates you can override: 
+
+* `intro-template` - Introduces the user + agents to the conversation (must include the `{AGENT_LIST}` and `{USER_PROMPT}` variables)
+* `coordinator-template` - Describes to the coordinator it's rules of engagement (must include the `{AGENT_LIST}`, `{USER_PROMPT}`, and `{AGENT_RESPONSES}` variables)
+* `carry-over-template` - The prompt used to pass the conversation to the next agent (must include the `{AGENT_NAME}` and `{NUDGE}` variables)
+* `question-template` - The prompt used to author the questions back to the user (must include the `{QUESTION}` variable)
+* `summary-template` - The prompt used to author the final response back to the user (must include the `{SUMMARY_RULES}`, `{AGENT_LIST}`, `{USER_PROMPT}`, and `{AGENT_RESPONSES}` variables)
+
+Here's an example config for a "Dev Team": 
+
+```JSON
+{
+    "id": "Dev Team Group Chat",
+    "type": "consensus",
+    "agents": [
+        {
+            "id": "Programmer",
+            "type": "completion",
+            "description": "A highly experienced senior software engineer.",
+            "system-message": "You are a highly distinguished and experienced Software Engineer.\n\nYou have been writing software for many years and you are an expert in your craft.\n\nYou have knowledge of most software design patterns, and readily accept feedback and happily rewrite code to improve as needed.\n\nYou are expert in writing software in many software development languages."
+        },
+        {
+            "id": "Computer Science Professor",
+            "type": "completion",
+            "description": "An tenured, highly experienced professor of computer science, with a deep understanding of all core computer science principles, and a particular strength in understanding how software implementations affect performance from a hardware level.",
+            "system-message": "You are a highly distinguished and tenured Computer Science Professor.\n\nYou are an expert in the field of computer science, you understand exactly how software is executed within the computer hardware.\n\nYou are an expert in understanding how particular code patterns can be optimised for things like performance, memory and power consumption."
+        },
+        {
+            "id": "Product Manager",
+            "type": "completion",
+            "description": "A designer of products, with a particular focus on understanding the correct features needed by end users of applications.",
+            "system-message": "You are an experience product manager. You understand the end user very well, and are very experienced in interpreting end user requirements into use cases for software engeineers to work from."
+        },
+        {
+            "id": "Code Reviewer",
+            "type": "completion",
+            "description": "A very senior software engineer who has a particular focus on ensuring all code written meets safety, performance and quality standards.",
+            "system-message": "You are a highly experienced software code reviewer.\n\nYou review code with a focus on ensuring it meets your exceptionally high bar for quality, performance, memory management and safety.\n\nYou are a critical reviewer, but also pragmatic and understand that code doesn't have to be perfect, but that it does need to meet all your quality standards."
+        }
+    ]
+}
+```
 
 
 ## Agents
