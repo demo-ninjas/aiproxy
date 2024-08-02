@@ -1,4 +1,10 @@
-<center>This project is currently in <span style="font-weight:bold;color:red">ALPHA</span> - use this code with discretion - it has been built for use in demos + prototypes only</center>
+
+<h1 align="center">
+  :black_circle: Azure OpenAI Chat Proxy Library :black_circle:
+</h1>
+
+> [!IMPORTANT]
+> This project is currently in $\color{BrickRed}{ALPHA}$ - use this code with discretion - it has been built for use in demos + prototypes only
 
 ## Azure OpenAI Chat Proxy Library
 This is a simple Python library that makes it super easy to work with Azure OpenAI.
@@ -16,6 +22,16 @@ Some high-level Features:
 * **Streaming Results** - A few simple implementations for streaming results
 * **Basic Orchestration** - A few simple orchestration patterns, such as choosing an agent to respond from a group of agents, multi-agent chat, and a step-plan approach
 
+
+## Table of Contents
+
+* [Installation](#installation)
+* [Usage](#usage)
+* [Function Calling](#function-calling)
+* [Configuration](#configuration)
+* [Available AI Proxies](#available-proxies)
+* [Available Orchestrators](#available-orchestrators)
+* [Available Agents](#agents)
 
 
 ## Installation
