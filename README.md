@@ -4,7 +4,7 @@
 </h1>
 
 > [!IMPORTANT]
-> This project is currently in $\color{BrickRed}{ALPHA}$ - use this code with discretion - it has been built for use in demos + prototypes only
+> This project has been built for use in $\color{BrickRed}{demos}$ and $\color{BrickRed}{prototypes}$ - use this code with discretion - it is not designed with production usage in mind.
 
 ## Azure OpenAI Chat Proxy Library
 This is a simple Python library that makes it super easy to work with Azure OpenAI.
