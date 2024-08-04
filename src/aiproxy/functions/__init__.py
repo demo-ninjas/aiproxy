@@ -6,6 +6,7 @@ from .maths_functions import register_functions as register_maths_functions
 from .string_functions import register_functions as register_string_functions
 from .object_functions import register_functions as register_object_functions
 from .url_functions import register_functions as register_url_functions
+from .dates import register_functions as register_dates_functions
 
 def register_all_base_functions():
     register_ai_chat_functions()
@@ -15,3 +16,4 @@ def register_all_base_functions():
     register_string_functions()
     register_object_functions()
     register_url_functions()
+    register_dates_functions()
