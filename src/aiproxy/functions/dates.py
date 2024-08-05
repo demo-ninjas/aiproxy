@@ -24,7 +24,7 @@ def dayname_for_date(
     return datetime.datetime.strptime(date, "%Y-%m-%d").strftime("%A")
 
 
-def register_functions(register:Callable[[str, str, Callable], any] ):
+def register_functions():
     from .function_registry import GLOBAL_FUNCTIONS_REGISTRY
     GLOBAL_FUNCTIONS_REGISTRY.register_base_function("today", "Returns todays date in ISO date format (YYYY-MM-DD)", today)
     GLOBAL_FUNCTIONS_REGISTRY.register_base_function("date_in_days", "Returns the date for a number of days from today in ISO date format (YYYY-MM-DD)", date_in_days)
