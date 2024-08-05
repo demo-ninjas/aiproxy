@@ -1,6 +1,6 @@
 [project]
 name = "aiproxy"
-version = "0.1.62"
+version = "0.1.63"
 authors = [
   { name="Stricko", email="adams@strickos.com" },
 ]

@@ -23,7 +23,7 @@ def orchestrator_factory(config: dict|str|ChatConfig, **kwargs) -> AbstractProxy
     orchestrator_type = orchestrator_type.lower()
     if orchestrator_type == "agentselect" or orchestrator_type == "agent-select" or orchestrator_type == "agentselectorchestrator":
         from .agent_select_orchestrator import AgentSelectOrchestrator
-        return GLOBAL_PROXIES_REGISTRY.load_proxy(config, SequentialAgentOrchestrator, **kwargs)
+        return GLOBAL_PROXIES_REGISTRY.load_proxy(config, AgentSelectOrchestrator, **kwargs)
     elif orchestrator_type == "step" or orchestrator_type == "steporchestrator" or orchestrator_type == "step-plan" or orchestrator_type == "stepplanorchestrator":
         from .step_plan_orchestrator import StepPlanOrchestrator
         return GLOBAL_PROXIES_REGISTRY.load_proxy(config, StepPlanOrchestrator, **kwargs)
