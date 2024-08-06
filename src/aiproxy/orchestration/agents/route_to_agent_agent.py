@@ -24,6 +24,8 @@ The agent list will be provided below, followed by the user prompt.
 {USER_PROMPT}
 [END USER PROMPT]
 
+The messages akready exchanged between the user and the agents is provided in the conversation history (unless this is the start of the conversation).
+
 Respond only with the name of the agent you believe is best suited to handle the user prompt, do not include any additional information.
 """
 
@@ -73,9 +75,8 @@ class RouteToAgentAgent(Agent):
         pass
     
     def process_message(self, message:str, context:ChatContext) -> ChatResponse:
-        prompt_context = context.clone_for_single_shot()
         selector_prompt = self._selector_prompt_template.format(AGENT_LIST=self._agent_list, USER_PROMPT=message)
-        selector_response = self.proxy.send_message(selector_prompt, prompt_context, override_model=self._custom_model, use_functions=False)
+        selector_response = self.proxy.send_message(selector_prompt, context.clone_for_single_shot(), override_model=self._custom_model, use_functions=False)
         if selector_response.error or selector_response.filtered: 
             return selector_response
         else: 

@@ -47,7 +47,7 @@ def ai_assistants_chat(
     if isolated: 
         ctx_to_use = context.clone_for_single_shot()
     
-    ass_proxy = GLOBAL_PROXIES_REGISTRY[proxy_name or AssistantProxy]
+    ass_proxy = GLOBAL_PROXIES_REGISTRY.load_proxy(proxy_name, AssistantProxy)
     if ass_proxy is None: 
         return "#ERROR No Assistant Proxy found to process the request"
 

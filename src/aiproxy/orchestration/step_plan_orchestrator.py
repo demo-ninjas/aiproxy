@@ -46,7 +46,7 @@ A plan takes the form of a series of steps, where each step is a valid JSON stri
 Eg. Here is what a plan looks like: 
 
 {{ "step": "Step 1: REASON FOR TAKING STEP", "function": "Function_Name", "args": {{ "arg1": "value1", "arg2": "value2", ... }}, "output": "$CONTEXT_VARIABLE_NAME" }}
-{{ "step": "Step 2: REASON FOR TAKING STEP", "function": "Function_Name", "args": {{ "arg1": "$CONTEXT_VARIABLE_NAME", "arg2": 123, ... }} }}
+{{ "step": "Step 2: REASON FOR TAKING STEP", "condition": "len($CONTEXT_VARIABLE_NAME) > 0", "function": "Function_Name", "args": {{ "arg1": "$CONTEXT_VARIABLE_NAME", "arg2": 123, ... }} }}
 {{ "step": "Step 3: REASON FOR TAKING STEP", "function": "Function_Name", "args": {{ "arg1": "prefix-${{CONTEXT_VARIABLE_NAME}}suffix", "arg2": "abc", ... }} }}
 {{ "step": "Step 4: REASON FOR TAKING STEP", "function": "generate_final_response", "args": {{ "arg1": "prefix-${{CONTEXT_VARIABLE_NAME}}suffix", "arg2": "abc", ... }} }}
 ##END##
@@ -55,6 +55,7 @@ Note, the '##END##' after the last step in the plan is required, please always a
 
 Following describes the structure of a plan step:
 * "step" - A string describing the reason for taking the step.
+* "condition" - An optional field that describes the conditions under which this step should be executed - if the condition is not met, the step will be skipped. The condition is a string that is a comparison between two values, where the comparison is one of the following: '==', '!=', '>', '<', '>=', '<=' (see below for details on setting comparison values).
 * "function" - The name of the function to call, aka The function that will perform the operation of this step - it must exactly match one of the [AVAILABLE FUNCTIONS] above (do not try and use a function not listed above).
 * "args" - A dictionary of arguments to pass to the function. The keys are the parameter names of the function and the values are the values to pass to the function. The values can be strings, numbers, context variables (a string prefixed with a '$') or a combination of string and context variables (where context variabels are wrapped with squiggly brackets - eg. ${{VARIABLE_NAME}}). You can also retrieve an element from a context variable that is a list by using the index of the element in square brackets (eg. $list_name[0]), or an attribute of a context variable using the dot notation (eg. $context_variable_name.attribute_name).
 * "output" - The name of the context variable to save the output of the function to. This is optional and only required if the output of the function is needed for a future step in the plan.
@@ -66,6 +67,16 @@ The last step must be a call to a special function (not listed in the function l
 * data - A list of context variables that would be relevant to An AI that is writing up the final response to the user's prompt
 * intent - A string that describes what you believe is the intent of the user's prompt
 * hint - A string that helps to describe what the answer to the user's prompt would be ( this will be passed as a hint to the AI generating the final response)
+
+Conditions are defines as a string that is a comparison between two values, where the comparison is one of the following: '==', '!=', '>', '<', '>=', '<='.
+
+A condition value can be any of the following: 
+* A context variable (a string prefixed with a '$')
+* A literal string or number
+* An attribute of a context variable using the dot notation (eg. $context_variable_name.attribute_name)
+* An element from a context variable that is a list by using the index of the element in square brackets (eg. $list_name[0])
+* A function call to one of the named available functions above, where the function args are described as a JSON object (eg. filter_list({{ "array":"$context_var", "field":"cuisine", "value":"Italian" }}))
+* One of the following internal functions: 'count', 'length', 'len', 'exists' - these functions take a single argument and return the count of the elements in the list, the length of the string, or whether the value is not None and has a length greater than 0 - specify like this: 'count($context_var)'
 
 {rules}
 
@@ -193,6 +204,7 @@ class StepPlanOrchestrator(AbstractProxy):
         self._responder_model = self._config['responder-model'] or self._config['model'] or None
         self._proxy = GLOBAL_PROXIES_REGISTRY.load_proxy(self._config['proxy'], CompletionsProxy)
         self._include_step_names_in_result = self._config.get('include-step-names-in-result', True)
+        self._include_step_args_in_result = self._config.get('include-step-args-in-result', True)
         self._final_response_template = self._config.get('final-response-template', GENERATE_FINAL_RESPONSE_TEMPLATE)
 
 
@@ -278,9 +290,17 @@ class StepPlanOrchestrator(AbstractProxy):
             func_name = step.get('function').strip()
             func_args = step.get('args') or {}
             output_var = step.get('output')
+            condition = step.get('condition')
             if output_var is not None and output_var.startswith("$"):
                 output_var = output_var[1:]
-            
+
+            if condition is not None:
+                ## Evaluate the condition
+                condition_result = self.evaluate_step_condition(context, condition, context_map, step_results, steps)
+                if not condition_result:
+                    step['executed'] = False
+                    continue
+
             if not func_name:
                 raise ValueError("Function name not provided in the step")
 
@@ -312,15 +332,29 @@ class StepPlanOrchestrator(AbstractProxy):
             
             if output_var:
                 context_map[output_var] = result
+            step['executed'] = True
             step_results.append(result)
         
         ## Setup the result of the plan
         plan_result = ChatResponse()
         plan_result.message = step_results[-1]
         if self._include_step_names_in_result:
-            plan_result.metadata = {
-                'steps': [ s.get('step') for s in steps]
-            }
+            metadata_steps = []
+            for step in steps: 
+                if not step.get('executed'):
+                    continue
+                
+                step_desc = step.get('step') or "<unnamed>"
+                if self._include_step_args_in_result:
+                    function_name = step.get('function', "<no function>")
+                    step_desc += " " + function_name
+                    if function_name != 'generate_final_response':
+                        step_desc += '(' + json.dumps(step.get('args') or {}) + ')'
+                    else: 
+                        step_desc += '()'
+
+                metadata_steps.append(step_desc)
+            plan_result.metadata = { "steps":metadata_steps }
 
         ## Add the original message to the context
         context.add_prompt_to_history(message, 'user')
@@ -416,6 +450,66 @@ class StepPlanOrchestrator(AbstractProxy):
         else: 
             args[key] = value
 
+
+    def evaluate_step_condition(self, context:ChatContext, condition:str, context_map:dict, step_results:list, steps:list[dict]) -> bool:
+        operator_list = ['==', '!=', '>', '<', '>=', '<=']
+        operator_start = -1
+        operator_end = -1
+        for operator in operator_list:
+            if operator in condition:
+                operator_start = condition.index(operator)
+                operator_end = operator_start + len(operator)
+                break
+        
+        lhs_val = condition[:operator_start].strip()
+        operator = condition[operator_start:operator_end].strip()
+        rhs_val = condition[operator_end:].strip()
+
+        lhs_val = self.parse_condition_arg(context, context_map, steps, lhs_val)
+        rhs_val = self.parse_condition_arg(context, context_map, steps, rhs_val)
+
+        if operator == '==':
+            return lhs_val == rhs_val
+        elif operator == '!=':
+            return lhs_val != rhs_val
+        elif operator == '>':
+            return float(lhs_val) > float(rhs_val)
+        elif operator == '<':
+            return float(lhs_val) < float(rhs_val)
+        elif operator == '>=':
+            return float(lhs_val) >= float(rhs_val)
+        elif operator == '<=':
+            return float(lhs_val) <= float(rhs_val)
+        else:
+            raise ValueError(f"Invalid operator in condition: {operator}")
+
+    def parse_condition_arg(self, context:ChatContext, context_map, steps, val):
+        if val.startswith("$"):
+            ## It's a variable
+            val = context_map.get(val[1:])
+        elif '(' in val and ')' in val:
+            ## It's a function
+            func_name = val[:val.index("(")]
+            args_str = val[val.index("(")+1:val.index(")")]
+            args = []
+            for arg in args_str.split(','):
+                arg = arg.strip()
+                if arg.startswith("$"):
+                    arg = context_map.get(arg[1:])
+                if type(arg) is str: 
+                    arg = arg.strip()
+                args.append(arg)
+
+            if func_name == 'count' or func_name == 'length' or func_name == 'len':
+                val = len(args[0])
+            elif func_name == 'exists':
+                val = args[0] is not None and len(args[0]) > 0
+            else:
+                f_args = {}
+                for arg_name, arg_val in json.loads(args_str).items():
+                    self._parse_value_directives(context, context_map, f_args, arg_name, arg_val)
+                val = invoke_registered_function(func_name, f_args, context_map, cast_result_to_string=False, sys_objects={ 'vars': context_map,'steps':steps })
+        return val
 
     def generate_final_response(
         self,

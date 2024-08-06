@@ -167,6 +167,12 @@ def _inner_object_update(obj:any, field:str, value:any = None) -> any:
             ## Build an array of the field for each item in the list
             obj = [item.get(field_name, None) for item in obj]
         else:
+            if type(obj) is str:
+                try: 
+                    obj = json.loads(obj)
+                except: 
+                    return None
+            if obj is None: return None
             obj = obj.get(field_name, None)
         
         if obj is None: return None

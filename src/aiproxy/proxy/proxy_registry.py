@@ -52,7 +52,10 @@ class ProxyRegistry:
 
     def __getitem__(self, name_or_type:str|type) -> AbstractProxy:
         if type(name_or_type) == type:
-            return self._defaults[name_or_type]
+            p = self._defaults.get(name_or_type)
+            if p is None:
+                p = ProxyRegistry.load_proxy(None, name_or_type)
+            return p
         return self._proxies[name_or_type]
 
     def __contains__(self, name_or_type:str|type):

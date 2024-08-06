@@ -82,6 +82,7 @@ def invoke_registered_function(function_name:str, function_args:str|dict, contex
                 result = str(result)
         return result
     except Exception as e:
+        import traceback
         logging.warning(f"Failed to invoke function '{function_name}' with Error: {e}")
-        logging.error(e)
+        traceback.print_exception(e)
         return FAILED_INVOKE_RESPONSE
