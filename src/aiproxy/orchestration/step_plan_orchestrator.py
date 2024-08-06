@@ -54,7 +54,7 @@ Eg. Here is what a plan looks like:
 Note, the '##END##' after the last step in the plan is required, please always add '##END##' on a new line after the last step the plan.
 
 Following describes the structure of a plan step:
-* "step" - A string describing the reason for taking the step.
+* "step" - A short and succinct string that describing the reason for taking the step.
 * "condition" - An optional field that describes the conditions under which this step should be executed - if the condition is not met, the step will be skipped. The condition is a string that is a comparison between two values, where the comparison is one of the following: '==', '!=', '>', '<', '>=', '<=' (see below for details on setting comparison values).
 * "function" - The name of the function to call, aka The function that will perform the operation of this step - it must exactly match one of the [AVAILABLE FUNCTIONS] above (do not try and use a function not listed above).
 * "args" - A dictionary of arguments to pass to the function. The keys are the parameter names of the function and the values are the values to pass to the function. The values can be strings, numbers, context variables (a string prefixed with a '$') or a combination of string and context variables (where context variabels are wrapped with squiggly brackets - eg. ${{VARIABLE_NAME}}). You can also retrieve an element from a context variable that is a list by using the index of the element in square brackets (eg. $list_name[0]), or an attribute of a context variable using the dot notation (eg. $context_variable_name.attribute_name).
@@ -344,14 +344,16 @@ class StepPlanOrchestrator(AbstractProxy):
                 if not step.get('executed'):
                     continue
                 
-                step_desc = step.get('step') or "<unnamed>"
                 if self._include_step_args_in_result:
+                    step_desc = "\"" + (step.get('step') or "<unnamed>") + "\": "
                     function_name = step.get('function', "<no function>")
                     step_desc += " " + function_name
                     if function_name != 'generate_final_response':
                         step_desc += '(' + json.dumps(step.get('args') or {}) + ')'
                     else: 
                         step_desc += '()'
+                else: 
+                    step_desc = step.get('step') or "<unnamed>"
 
                 metadata_steps.append(step_desc)
             plan_result.metadata = { "steps":metadata_steps }
