@@ -198,3 +198,29 @@ def get_config_record(config_name:str):
             if key.startswith("_"):
                 del item[key]
     return item
+
+
+def start_cache_refresh_thread():
+    """
+    Starts a thread that refreshes the cache every 10 minutes
+    """
+    import threading
+    import time
+
+    def refresh_cache():
+        global CACHED_CONFIGS
+
+        refresh_interval = float(os.environ.get("CONFIGS_REFRESH_INTERVAL_SECS", 60))
+        while True:
+            time.sleep(refresh_interval)
+            try: 
+                for k in CACHED_CONFIGS.keys():
+                    updated_val = load_named_config(k, False, False)
+                    if updated_val is not None:
+                        CACHED_CONFIGS[k] = updated_val
+            except Exception as e:
+                print(f"Error refreshing cache: {e}")
+
+    t = threading.Thread(target=refresh_cache, daemon=True)
+    t.start()
+    return t
