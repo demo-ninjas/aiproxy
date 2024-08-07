@@ -132,7 +132,7 @@ class MultiAgentOrchestrator(AbstractProxy):
                 agent_responses += "\n---\n"
 
         prompt = self._interp_template.format(AGENT_RESPONSES=agent_responses, USER_PROMPT=message)
-        interp_context = context.clone_for_single_shot()
+        interp_context = context.clone_for_single_shot(with_streamer=True)
         response = self._interpreter.send_message(prompt, interp_context, use_functions=False)
 
         if not response.error and not response.filtered:

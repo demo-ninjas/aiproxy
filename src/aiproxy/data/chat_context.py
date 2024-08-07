@@ -31,19 +31,19 @@ class ChatContext:
         self.metadata = metadata
         self.metadata_transient_keys = metadata_transient_keys
 
-    def clone_for_single_shot(self) -> 'ChatContext':
+    def clone_for_single_shot(self, with_streamer:bool = False) -> 'ChatContext':
         return ChatContext(
             history_provider=None,  ## Don't need to clone the history provider 
-            stream=None,            ## No Streamingn for this context
+            stream=self.stream_writer if with_streamer else None,
             function_args_preprocessor=self.function_args_preprocessor,
             function_filter=self.function_filter,
             metadata=self.metadata.copy() if self.metadata is not None else None, 
             metadata_transient_keys=self.metadata_transient_keys, 
         )
     
-    def clone_for_thread_isolation(self, thread_id_to_use:str = None) -> 'ChatContext':
+    def clone_for_thread_isolation(self, thread_id_to_use:str = None, with_streamer:bool = False) -> 'ChatContext':
         return ChatContext(
-            stream=None,            ## No Streaming for this context
+            stream=self.stream_writer if with_streamer else None,
             history_provider=self.history_provider,
             function_args_preprocessor=self.function_args_preprocessor,
             function_filter=self.function_filter,
@@ -85,7 +85,7 @@ class ChatContext:
         if self.stream_writer is not None:
             if message_type is not None:
                 if type(message) is dict: 
-                    if "type" not in message: 
+                    if "type" not in message and message_type is not None: 
                         message["type"] = message_type
                 else: 
                     message = SimpleStreamMessage(message, message_type).to_dict()

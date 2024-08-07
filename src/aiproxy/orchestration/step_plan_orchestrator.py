@@ -7,6 +7,7 @@ from aiproxy.data import ChatConfig, ChatContext, ChatResponse
 from aiproxy.functions import GLOBAL_FUNCTIONS_REGISTRY, FunctionDef
 from aiproxy.proxy import GLOBAL_PROXIES_REGISTRY, CompletionsProxy
 from aiproxy.utils.func import invoke_registered_function
+from aiproxy.streaming import PROGRESS_UPDATE_MESSAGE
 
 STEP_PLAN_PROMPT_TEMPLATE = """Your role is to build a step by step plan to fulfill the goal of the user prompt.
 
@@ -253,6 +254,7 @@ class StepPlanOrchestrator(AbstractProxy):
             user_prompt=message,
             recent_conversation=recent_conversation
         )
+        context.push_stream_update("Planning out how to respond...", PROGRESS_UPDATE_MESSAGE)
         plan_result = self._proxy.send_message(prompt, planner_ctx, self._planner_model, use_functions=False)
         plan_str = plan_result.message
         plan_arr = plan_str.split("\n")
@@ -291,6 +293,8 @@ class StepPlanOrchestrator(AbstractProxy):
             func_args = step.get('args') or {}
             output_var = step.get('output')
             condition = step.get('condition')
+
+            context.push_stream_update("Executing step: " + step.get('step'), "step")
             if output_var is not None and output_var.startswith("$"):
                 output_var = output_var[1:]
 
@@ -306,9 +310,9 @@ class StepPlanOrchestrator(AbstractProxy):
 
             if func_name == 'generate_final_response':
                 result = self.generate_final_response(message, 
-                                                      data=args.get('data'),
-                                                      intent=args.get('intent'), 
-                                                      hint=args.get('hint'),
+                                                      data=func_args.get('data'),
+                                                      intent=func_args.get('intent'), 
+                                                      hint=func_args.get('hint'),
                                                       vars=context_map,
                                                       steps=steps,
                                                       context=context)
@@ -336,6 +340,7 @@ class StepPlanOrchestrator(AbstractProxy):
             step_results.append(result)
         
         ## Setup the result of the plan
+        context.push_stream_update("Cleaning up after responding...", PROGRESS_UPDATE_MESSAGE)
         plan_result = ChatResponse()
         plan_result.message = step_results[-1]
         if self._include_step_names_in_result:
@@ -348,7 +353,11 @@ class StepPlanOrchestrator(AbstractProxy):
                     step_desc = "\"" + (step.get('step') or "<unnamed>") + "\": "
                     function_name = step.get('function', "<no function>")
                     step_desc += " " + function_name
-                    if function_name != 'generate_final_response':
+                    if function_name == 'ai_chat':
+                        t_args = step.get('args')
+                        t_args = { "prompt": t_args.get('prompt') }
+                        step_desc += '(' + json.dumps(t_args or {}) + ')'
+                    elif function_name != 'generate_final_response':
                         step_desc += '(' + json.dumps(step.get('args') or {}) + ')'
                     else: 
                         step_desc += '()'
@@ -564,7 +573,7 @@ class StepPlanOrchestrator(AbstractProxy):
             steps=json.dumps(steps, indent=2)
         )
 
-        resp_context = context.clone_for_single_shot()
+        resp_context = context.clone_for_single_shot(with_streamer=True)
         
         # Provide a custom arg pre-processor that will add the vars argument
         original_req_preprocessor = context.function_args_preprocessor

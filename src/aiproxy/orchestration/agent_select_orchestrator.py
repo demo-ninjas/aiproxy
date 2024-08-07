@@ -35,7 +35,7 @@ class AgentSelectOrchestrator(AbstractProxy):
 
     def send_message(self, message: str, context: ChatContext, override_model: str = None, override_system_prompt: str = None, function_filter: Callable[[str, str], bool] = None, use_functions: bool = True, timeout_secs: int = 0, use_completions_data_source_extensions: bool = False) -> ChatResponse:
         ## Fill the selector history with the conversation so far
-        selector_context = context.clone_for_single_shot()
+        selector_context = context.clone_for_single_shot(with_streamer=True)
         context.init_history()
         if context.history: 
             for msg in context.history:

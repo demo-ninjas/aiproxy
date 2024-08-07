@@ -64,14 +64,15 @@ class SequentialAgentOrchestrator(AbstractProxy):
             return ChatResponse(message="No agents specified to handle the prompt")
 
         prev_responses = []
-        for agent in agents:
+        for idx, agent in enumerate(agents):
             prompt = message
             if self._carry_over_user_prompt and len(prev_responses) > 0:
                 prompt = self._carry_over_template.format(AGENT_RESPONSES="\n\n".join([f"{agent.name}:\n{response.message}" for agent, response in prev_responses]), USER_PROMPT=message)
             elif len(prev_responses) > 0:
                 prompt = prev_responses[-1][1].message
 
-            ctx = context.clone_for_single_shot()
+            ## If this is the last agent, we want to set the with_streamer=True so that the context can push the response to the stream
+            ctx = context.clone_for_single_shot(with_streamer=(idx == len(agents) - 1))
             response = agent.process_message(prompt, ctx)
             if response is not None:
                 prev_responses.append((agent, response))
