@@ -188,6 +188,7 @@ class CompletionsProxy(AbstractProxy):
                 if type(result) is openai.Stream:
                     more_steps = self._process_streaming_results(result, response, context, chunk_data)
                 else: 
+                    context.push_stream_update("Writing a response", PROGRESS_UPDATE_MESSAGE)
                     more_steps = self._process_choices(result, response, context) 
                 
                 ## Update the remaining time
@@ -265,6 +266,9 @@ class CompletionsProxy(AbstractProxy):
     def __process_stream_chunk(self, choice:StreamChoice, response:ChatResponse, context:ChatContext, chunk_data:ChunkData) -> bool:
         ## Process the streaming choice response from the AI
         more_steps = True
+
+        if chunk_data.accumulated_delta is None or len(chunk_data.accumulated_delta) == 0:
+            context.push_stream_update("Writing a response", PROGRESS_UPDATE_MESSAGE)
 
         if choice.finish_reason is not None:
             more_steps = self.__process_finished_stream_chunk(choice, response, context, chunk_data)
