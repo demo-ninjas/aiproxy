@@ -138,5 +138,5 @@ class MultiAgentOrchestrator(AbstractProxy):
         if not response.error and not response.filtered:
             ## Add the User Message + Final Response to the context history    
             context.add_prompt_to_history(message, 'user')
-            context.add_prompt_to_history(response, 'assistant')
+            context.add_response_to_history(response)
             context.save_history()

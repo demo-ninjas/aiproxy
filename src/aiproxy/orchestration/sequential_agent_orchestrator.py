@@ -81,7 +81,7 @@ class SequentialAgentOrchestrator(AbstractProxy):
         resp = None
         if len(prev_responses) > 0:
             resp = prev_responses[-1][1]
-            context.add_prompt_to_history(resp.message, 'assistant')
+            context.add_response_to_history(resp)
         else: 
             resp = ChatResponse()
             resp.message = "No agents provided a response"

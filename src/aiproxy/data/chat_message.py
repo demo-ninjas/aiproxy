@@ -11,8 +11,9 @@ class ChatMessage:
     id:str
     assistant_id:str
     run_id:str
+    metadata:dict
 
-    def __init__(self, message:str = None, role:str = None, timestamp:str = None, content:dict = None, id:str = None, tool_calls:dict = None, citations:list = None, tool_call_id:str = None, tool_name:str = None, assistant_id:str = None, run_id:str = None) -> None:
+    def __init__(self, message:str = None, role:str = None, timestamp:str = None, content:dict = None, id:str = None, tool_calls:dict = None, citations:list = None, tool_call_id:str = None, tool_name:str = None, assistant_id:str = None, run_id:str = None, metadata:dict = None) -> None:
         self.message = message
         self.role = role
         self.timestamp = timestamp
@@ -28,6 +29,15 @@ class ChatMessage:
         self.tool_name = tool_name
         self.assistant_id = assistant_id
         self.run_id = run_id
+        self.metadata = metadata
+
+    def add_metadata(self, key:str, value:str):
+        if self.metadata is None: 
+            self.metadata = {}
+        self.metadata[key] = value
+
+    def get_metadata(self, key:str, default: any = None) -> any:
+        return self.metadata.get(key, default) if self.metadata is not None else default
 
     def from_dict(data:dict) -> 'ChatMessage':
         return ChatMessage(
@@ -41,7 +51,8 @@ class ChatMessage:
             tool_call_id = data.get('tool_call_id'),
             assistant_id=data.get('assistant_id'),
             run_id=data.get('run_id'),
-            id = data.get('id')
+            id = data.get('id'),
+            metadata=data.get('metadata')
         )
     
     def to_dict(self) -> dict: 
@@ -56,7 +67,8 @@ class ChatMessage:
             'citations': self.citations,
             'assistant_id': self.assistant_id,
             'run_id': self.run_id,
-            'id': self.id
+            'id': self.id,
+            'metadata': self.metadata
         }
     
     def to_openid_message(self) -> dict: 

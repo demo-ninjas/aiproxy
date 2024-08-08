@@ -85,6 +85,10 @@ class AbstractProxy:
                         response_data = json.loads(msg[squiggly_pos:])
                 
                 if response_data is not None and type(response_data) is dict:
+                    response.add_metadata('_msg-parsed', True)
+                    if self._config.get('save-raw-msg', True):
+                        response.add_metadata('_raw-msg', response.message)
+
                     response.message = response_data.get('message') or response_data.get('response') or response.message
                     for key, val in response_data.items():
                         if key != 'message' and key != 'response':

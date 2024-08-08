@@ -315,6 +315,8 @@ class AssistantProxy(AbstractProxy):
             resp.id = assistant_msg.id
             resp.thread_id = assistant_msg.thread_id
             resp.metadata = {}
+            if assistant_msg.run_id is not None:
+                resp.metadata["run_id"] = assistant_msg.run_id
             if assistant_msg.file_ids is not None and len(assistant_msg.file_ids) > 0:
                 resp.metadata["file_ids"] = assistant_msg.file_ids
             for content in assistant_msg.content:

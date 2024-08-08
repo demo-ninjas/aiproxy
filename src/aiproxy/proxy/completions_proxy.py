@@ -76,9 +76,12 @@ class CompletionsProxy(AbstractProxy):
                 from datetime import datetime
                 value = datetime.now().strftime(key[12:])
             else:
-                ## Key - it's either going to be in the context metadata, or a config value
-                value = context.get_metadata(key) or (self._config.prompt_vars.get(key) if self._config.prompt_vars is not None else None)
-
+                ## Ask the context to parse the key
+                value = context.parse_prompt_key(key)
+                if value is None:
+                    ## Check if the key is in the prompt_vars
+                    value = self._config.prompt_vars.get(key) if self._config.prompt_vars is not None else None
+                
             ## If the key is not found, then leave it, and move on to the next key
             if value is None:
                 from_pos = start + 2
@@ -200,6 +203,7 @@ class CompletionsProxy(AbstractProxy):
 
             ## Request the context to save the history (with the updated messages list)
             context.push_stream_update("Documenting our conversation", PROGRESS_UPDATE_MESSAGE)
+            context.add_response_to_history(response)
             context.save_history()
 
         except Exception as e:
@@ -256,8 +260,8 @@ class CompletionsProxy(AbstractProxy):
             else: 
                 ## This is a normal message from the AI
                 ## So, grab the content, add it to the history and return the message
-                msg = ChatMessage(message = choice.message.content, role = choice.message.role)
-                context.add_message_to_history(msg)
+                # msg = ChatMessage(message = choice.message.content, role = choice.message.role)
+                # context.add_message_to_history(msg)
                 response.message = choice.message.content if response.message is None else response.message + "\n" + choice.message.content
                 more_steps = False  ## We've got the complete response from the AI, so no more steps
 
@@ -303,7 +307,7 @@ class CompletionsProxy(AbstractProxy):
             self._publish_interim_result(chunk_data, context, force_publish=True) ## Force publishing even if we only just recently published
             
             ## Add the Message to the History
-            context.add_message_to_history(ChatMessage(message=chunk_data.content, role=chunk_data.role, citations=[c.to_api_response() for c in response.citations]))
+            # context.add_message_to_history(ChatMessage(message=chunk_data.content, role=chunk_data.role, citations=[c.to_api_response() for c in response.citations]))
             
             ## And finally, add the message to the response
             response.message = chunk_data.content if response.message is None else response.message + "\n" + chunk_data.content
@@ -334,7 +338,7 @@ class CompletionsProxy(AbstractProxy):
             logging.warning(f"Finish Reason: Function Call, for Choice {choice} [Doing Nothing with this for now]")
         elif choice.finish_reason == "stop":
             self._publish_interim_result(chunk_data, context, force_publish=True) ## Force publishing even if we only just recently published, this will ensure any dangling deltas are published
-            context.add_message_to_history(ChatMessage(message=chunk_data.content, role=chunk_data.role))
+            # context.add_message_to_history(ChatMessage(message=chunk_data.content, role=chunk_data.role))
             response.message = chunk_data.content if response.message is None else response.message + "\n" + chunk_data.content
             more_steps = False
         elif choice.finish_reason == "length": 
@@ -387,7 +391,7 @@ class CompletionsProxy(AbstractProxy):
                     response.citations.append(ChatCitation.from_data_source_citation(m_citation).to_api_response())
             
             ## Add the message to the history
-            context.add_message_to_history(ChatMessage(message=msg_content, role='assistant', citations=[c.to_api_response() for c in response.citations]))
+            # context.add_message_to_history(ChatMessage(message=msg_content, role='assistant', citations=[c.to_api_response() for c in response.citations]))
 
         return more_steps
     

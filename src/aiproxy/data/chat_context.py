@@ -2,6 +2,7 @@ from typing import Callable
 
 from aiproxy.interfaces import StreamWriter, SimpleStreamMessage, HistoryProvider, NoOpHistoryProvider, FunctionDef
 from .chat_message import ChatMessage
+from .chat_response import ChatResponse
 
 class ChatContext:
     thread_id:str = None
@@ -98,6 +99,19 @@ class ChatContext:
         msg.role = role
         self.add_message_to_history(msg)
 
+    def add_response_to_history(self, response:ChatResponse):
+        if response.failed or response.filtered: return
+        msg = ChatMessage()
+        msg.message = response.message
+        msg.role = "assistant"
+        msg.assistant_id = response.assistant_id
+        if response.metadata is not None: 
+            msg.metadata = response.metadata.copy()
+            msg.run_id = msg.metadata.pop('run_id', None)
+        if response.citations is not None: 
+            msg.citations = response.citations
+        self.add_message_to_history(msg)
+
     def add_message_to_history(self, message:ChatMessage):
         if self.history is None: 
             self.history = []
@@ -130,3 +144,10 @@ class ChatContext:
                 self.metadata_transient_keys = []
             if key not in self.metadata_transient_keys:
                 self.metadata_transient_keys.append(key)
+
+    def parse_prompt_key(self, key:str) -> str:
+        if key is None: return None
+        ## Return the Thread ID 
+        if key == 'thread_id' or key == 'thread': return self.thread_id
+        ## If it matches a metadata key, return the metadata value
+        return self.get_metadata(key)

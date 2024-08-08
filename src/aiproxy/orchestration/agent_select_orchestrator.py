@@ -44,7 +44,7 @@ class AgentSelectOrchestrator(AbstractProxy):
 
         
         context.add_prompt_to_history(message, 'user')
-        context.add_prompt_to_history(result.message, 'assistant')
+        context.add_response_to_history(result)
         context.save_history()
         return result
     

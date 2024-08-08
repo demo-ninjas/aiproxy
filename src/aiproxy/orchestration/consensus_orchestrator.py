@@ -336,7 +336,7 @@ class ConsensusOrchestrator(AbstractProxy):
         else:
             summary_resp.add_metadata('participants', [a.name for a,m in conversation_so_far])
             context.add_prompt_to_history(message, 'user')
-            context.add_prompt_to_history(summary_resp.message, 'assistant')
+            context.add_response_to_history(summary_resp)
             context.save_history()
             conversation_context.save_history()
             return summary_resp

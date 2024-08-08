@@ -27,7 +27,7 @@ class ImageOrchestrator(AbstractProxy):
 
         if not resp.error and not resp.filtered:
             context.add_prompt_to_history("Analyse this image", 'user')
-            context.add_prompt_to_history(resp.message, 'assistant')
+            context.add_response_to_history(resp)
             context.save_history()
 
         return resp

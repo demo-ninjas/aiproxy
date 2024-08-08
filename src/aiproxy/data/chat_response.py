@@ -85,5 +85,7 @@ class ChatResponse:
         if self.error is not None: out["error"] = self.error
         
         if self.metadata is not None: 
-            for k,v in self.metadata.items(): out[k] = v
+            for k,v in self.metadata.items(): 
+                if not k.startswith("_") and not k.startswith("internal_"): 
+                    out[k] = v
         return out

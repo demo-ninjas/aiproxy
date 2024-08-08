@@ -370,7 +370,7 @@ class StepPlanOrchestrator(AbstractProxy):
         ## Add the original message to the context
         context.add_prompt_to_history(message, 'user')
         ## Add the result to the context
-        context.add_prompt_to_history(plan_result.message, 'assistant')
+        context.add_response_to_history(plan_result)
         context.save_history()
         return plan_result
 
