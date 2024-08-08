@@ -24,7 +24,8 @@ def agent_factory(config: dict|str|ChatConfig, **kwargs) -> Agent:
     
     ## If the agent is already registered, return it
     if name in GLOBAL_AGENTS_REGISTRY:
-        return GLOBAL_AGENTS_REGISTRY
+        return GLOBAL_AGENTS_REGISTRY[name]
+
     
     description = config.get("description", None)
     agent_type = config.get('agent-type') or config.get("type", name)
@@ -55,6 +56,9 @@ def agent_factory(config: dict|str|ChatConfig, **kwargs) -> Agent:
     elif agent_type == 'function' or agent_type == 'function-agent' or agent_type == 'functions':
         from .function_agent import FunctionAgent
         agent = FunctionAgent(name, description, config, **kwargs)
+    elif agent_type == 'suggestion' or agent_type == 'suggestions' or agent_type == 'next-action' or agent_type == 'next-action-agent' or agent_type == 'suggestions-agent':
+        from .suggestions_agent import SuggestionsAgent
+        agent = SuggestionsAgent(name, description, config, **kwargs)
     elif agent_type == 'analyse-image' or agent_type == 'analyse-image-agent' or agent_type == 'image':
         from .analyse_image_agent import AnalyseImageAgent
         agent = AnalyseImageAgent(name, description, config, **kwargs)
