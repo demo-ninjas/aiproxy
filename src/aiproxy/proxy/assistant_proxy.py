@@ -78,9 +78,15 @@ class AssistantProxy(AbstractProxy):
             return outcome            
         
         elif run.status == 'expired':
-            return [ChatResponse(error="Run expired before completion")]
+            resp = ChatResponse()
+            resp.failed = True
+            resp.error = "Run expired before completion"
+            return [resp]
         else: 
-            return [ChatResponse(error=f"Run failed with status: {run.status}")]
+            resp = ChatResponse()
+            resp.failed = True
+            resp.error = f"Run failed with status: {run.status}"
+            return [resp]
         
         
 

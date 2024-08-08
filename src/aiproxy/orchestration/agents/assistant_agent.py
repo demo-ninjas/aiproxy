@@ -21,10 +21,10 @@ class AssistantAgent(Agent):
         self._isolated_thread_id = None
         
     def process_message(self, message:str, context:ChatContext) -> ChatResponse:
+        context.init_history()
         assistant_thread_id = context.get_metadata('assistant-thread-id')
         context_for_assistant = context.clone_for_thread_isolation(with_streamer=True)
         context_for_assistant.thread_id = assistant_thread_id
-        
         
         if self._thread_isolated:
             context = context.clone_for_thread_isolation(self._isolated_thread_id)
@@ -75,5 +75,5 @@ class AssistantAgent(Agent):
         
         context.add_prompt_to_history(message, "user")
         context.add_prompt_to_history(response.message, "assistant")
-        
+        context.save_history()
         return response
