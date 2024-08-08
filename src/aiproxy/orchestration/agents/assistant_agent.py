@@ -21,16 +21,24 @@ class AssistantAgent(Agent):
         self._isolated_thread_id = None
         
     def process_message(self, message:str, context:ChatContext) -> ChatResponse:
+        assistant_thread_id = context.get_metadata('assistant-thread-id')
+        context_for_assistant = context.clone_for_thread_isolation(with_streamer=True)
+        context_for_assistant.thread_id = assistant_thread_id
+        
+        
         if self._thread_isolated:
             context = context.clone_for_thread_isolation(self._isolated_thread_id)
 
         # Send message to the proxy
         assistant_name = self._assistant_name or context.get_metadata('assistant') or context.get_metadata('assistant-id') or context.get_metadata('assistant-name') or self.config.get('name') or self.name
-        responses = self.proxy.send_message_and_return_outcome(message, context, assistant_name_or_id=assistant_name)
+        responses = self.proxy.send_message_and_return_outcome(message, context_for_assistant, assistant_name_or_id=assistant_name)
         # If the agent is using an isolated thread, store the thread-id for use later 
         if self._thread_isolated:
             self._isolated_thread_id = context.thread_id
 
+        ## Save the assistant thread id for future reference
+        context.set_metadata('assistant-thread-id', context_for_assistant.thread_id)
+        
         ## Check for errors and filtered responses
         if len(responses) == 0:
             response = ChatResponse()
@@ -64,5 +72,8 @@ class AssistantAgent(Agent):
                         response.metadata = resp.metadata
                     else: 
                         response.metadata.update(resp.metadata)
+        
+        context.add_prompt_to_history(message, "user")
+        context.add_prompt_to_history(response.message, "assistant")
         
         return response
