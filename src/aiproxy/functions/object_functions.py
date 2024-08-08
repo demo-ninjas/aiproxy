@@ -255,7 +255,26 @@ def merge_lists(
 
 def get_dict_val(key:Annotated[str, "The name of the key to retrieve the value of."], obj:dict = None) -> str:
         if obj is None: return ""
+
+        if type(obj) is str:
+            try: 
+                obj = json.loads(obj)
+            except: 
+                return ""
+        elif type(obj) is list: 
+            return ",".join([ get_dict_val(key, item) for item in obj])
+
+
         val = obj.get(key, "")
+
+        ## if the val is not found, look and see if there is a partial match (this can be commonly an issue with the AI Model calling this)
+        if val == "":
+            lower_key = key.lower()
+            for k in obj.keys():
+                if lower_key in str(k).lower():
+                    val = obj.get(k, "")
+                    break
+
         if val is None: return ""
         if type(val) in [str,int,float,bool]: return val
         if type(val) is list: 
