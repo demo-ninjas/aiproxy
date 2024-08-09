@@ -39,7 +39,7 @@ class PubsubStreamWriter(StreamWriter):
         
     def _push_message(self, message:dict|str|SimpleStreamMessage, content_type:str = "application/json"):
         import logging
-        logging.info(f"[STARTING] Sending message to PubSub: {self._stream_id} - {data}")
+        logging.info(f"[STARTING] Sending message to PubSub: {self._stream_id}")
 
         data = message
         if type(message) is SimpleStreamMessage:
@@ -51,6 +51,7 @@ class PubsubStreamWriter(StreamWriter):
 
         logging.info(f"[DOING] Sending message to PubSub: {self._stream_id} - {data}")
         self._stream_client.send_to_group(group=self._stream_id, message=data, content_type=content_type)
+        logging.info(f"[DONE] Have sent message to PubSub: {self._stream_id} - {data}")
 
     def generate_access_url(self) -> str:
         roles = [f"webpubsub.joinLeaveGroup.{self._stream_id}"]
