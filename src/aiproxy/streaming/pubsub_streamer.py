@@ -38,6 +38,9 @@ class PubsubStreamWriter(StreamWriter):
             _STREAM_CLIENT_CACHE[cache_name] = self._stream_client
         
     def _push_message(self, message:dict|str|SimpleStreamMessage, content_type:str = "application/json"):
+        import logging
+        logging.info(f"[STARTING] Sending message to PubSub: {self._stream_id} - {data}")
+
         data = message
         if type(message) is SimpleStreamMessage:
             data = message.to_dict()
@@ -46,8 +49,7 @@ class PubsubStreamWriter(StreamWriter):
         elif hasattr(message, 'to_json'):
             data = message.to_json()
 
-        import logging
-        logging.info(f"Sending message to PubSub: {self._stream_id} - {data}")
+        logging.info(f"[DOING] Sending message to PubSub: {self._stream_id} - {data}")
         self._stream_client.send_to_group(group=self._stream_id, message=data, content_type=content_type)
 
     def generate_access_url(self) -> str:
