@@ -46,6 +46,8 @@ class PubsubStreamWriter(StreamWriter):
         elif hasattr(message, 'to_json'):
             data = message.to_json()
 
+        import logging
+        logging.info(f"Sending message to PubSub: {self._stream_id} - {data}")
         self._stream_client.send_to_group(group=self._stream_id, message=data, content_type=content_type)
 
     def generate_access_url(self) -> str:

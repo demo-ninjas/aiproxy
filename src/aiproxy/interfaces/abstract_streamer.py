@@ -47,7 +47,7 @@ class StreamWriter:
             if self._async and self._executor is not None: 
                 self._executor.submit(self._execute_push_message, message, content_type)
             else: 
-                self._push_message(message, content_type)
+                self._execute_push_message(message, content_type)
     
     def set_executor(self, excutor:ThreadPoolExecutor):
         self._executor = excutor
