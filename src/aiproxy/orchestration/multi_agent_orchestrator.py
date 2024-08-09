@@ -77,7 +77,15 @@ class MultiAgentOrchestrator(AbstractProxy):
     def _send_message_to_agent(self, agent:Agent, message:str, context:ChatContext) -> Tuple[Agent, ChatResponse]:
         return (agent, agent.process_message(message, context))
 
-    def send_message(self, message: str, context: ChatContext, override_model: str = None, override_system_prompt: str = None, function_filter: Callable[[str, str], bool] = None, use_functions: bool = True, timeout_secs: int = 0, use_completions_data_source_extensions: bool = False) -> ChatResponse:
+    def send_message(self, message: str, 
+                     context: ChatContext, 
+                     override_model: str = None, 
+                     override_system_prompt: str = None, 
+                     function_filter: Callable[[str, str], bool] = None, 
+                     use_functions: bool = True, timeout_secs: int = 0, 
+                     use_completions_data_source_extensions: bool = False,
+                     working_notifier:Callable[[], None] = None,
+                     **kwargs) -> ChatResponse:
         ## Send the message to each agent in turn
         
         ## Check if the configured agent list is empty + if so, check if the request is specifying the agents
@@ -96,6 +104,7 @@ class MultiAgentOrchestrator(AbstractProxy):
             raise ValueError("No agents configured for the MultiAgentOrchestrator, you must specify at least one agent")
 
         futs = []
+        if working_notifier is not None: working_notifier()
         for agent in agent_list:
             futs.append(self._executor.submit(self._send_message_to_agent, agent, message, context.clone_for_thread_isolation()))        
 
@@ -111,6 +120,7 @@ class MultiAgentOrchestrator(AbstractProxy):
         responses:list[Tuple[Agent, ChatResponse]] = []
         try:
             for fut in as_completed(futs, float(timeout)):
+                if working_notifier is not None: working_notifier()
                 responses.append(fut.result())
         except TimeoutError:
             if self._raise_on_timeout:

@@ -243,7 +243,16 @@ class StepPlanOrchestrator(AbstractProxy):
             recent_conversation += f"[{message.role}]\n{message.message}\n***"
         return recent_conversation
 
-    def send_message(self, message: str, context: ChatContext, override_model: str = None, override_system_prompt: str = None, function_filter: Callable[[str, str], bool] = None, use_functions: bool = True, timeout_secs: int = 0, use_completions_data_source_extensions: bool = False) -> ChatResponse:
+    def send_message(self, message: str, 
+                     context: ChatContext, 
+                     override_model: str = None, 
+                     override_system_prompt: str = None, 
+                     function_filter: Callable[[str, str], bool] = None, 
+                     use_functions: bool = True, 
+                     timeout_secs: int = 0, 
+                     use_completions_data_source_extensions: bool = False,
+                     working_notifier:Callable[[], None] = None,
+                     **kwargs) -> ChatResponse:
         planner_ctx = context.clone_for_single_shot()
         recent_conversation = self._build_recent_conversation(context)
 
@@ -255,6 +264,7 @@ class StepPlanOrchestrator(AbstractProxy):
             recent_conversation=recent_conversation
         )
         context.push_stream_update("Planning out how to respond...", PROGRESS_UPDATE_MESSAGE)
+        if working_notifier is not None: working_notifier()
         plan_result = self._proxy.send_message(prompt, planner_ctx, self._planner_model, use_functions=False)
         plan_str = plan_result.message
         plan_arr = plan_str.split("\n")
@@ -289,6 +299,7 @@ class StepPlanOrchestrator(AbstractProxy):
         context_map = {}
         step_results = []
         for step in steps:
+            if working_notifier is not None: working_notifier()
             func_name = step.get('function').strip()
             func_args = step.get('args') or {}
             output_var = step.get('output')

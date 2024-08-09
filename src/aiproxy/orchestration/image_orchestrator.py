@@ -17,9 +17,18 @@ class ImageOrchestrator(AbstractProxy):
         agent_config = ChatConfig.load(config)
         self._agent = AnalyseImageAgent(agent_name, agent_desc, agent_config)
         
-    def send_message(self, message: str, context: ChatContext, override_model: str = None, override_system_prompt: str = None, function_filter: Callable[[str, str], bool] = None, use_functions: bool = True, timeout_secs: int = 0, use_completions_data_source_extensions: bool = False) -> ChatResponse:
+    def send_message(self, message: str, 
+                     context: ChatContext, 
+                     override_model: str = None, 
+                     override_system_prompt: str = None, 
+                     function_filter: Callable[[str, str], bool] = None, 
+                     use_functions: bool = True, timeout_secs: int = 0, 
+                     use_completions_data_source_extensions: bool = False,
+                     working_notifier:Callable[[], None] = None,
+                     **kwargs) -> ChatResponse:
         image_bytes = context.get_metadata("image-bytes") or context.get('image-metadata') or context.get('bytes')
         resp = None
+        if working_notifier is not None: working_notifier()
         if image_bytes is not None:
             resp = self._agent.process_message(image_bytes, context)
         else:

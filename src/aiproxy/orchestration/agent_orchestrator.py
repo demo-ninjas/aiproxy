@@ -23,7 +23,15 @@ class AgentOrchestrator(AbstractProxy):
                 if 'not found' not in estr and 'unknown' not in estr:
                     raise ValueError(f"Failed to create agent from config: {estr}")
         
-    def send_message(self, message: str, context: ChatContext, override_model: str = None, override_system_prompt: str = None, function_filter: Callable[[str, str], bool] = None, use_functions: bool = True, timeout_secs: int = 0, use_completions_data_source_extensions: bool = False) -> ChatResponse:
+    def send_message(self, message: str, 
+                     context: ChatContext, 
+                     override_model: str = None, 
+                     override_system_prompt: str = None, 
+                     function_filter: Callable[[str, str], bool] = None, 
+                     use_functions: bool = True, timeout_secs: int = 0, 
+                     use_completions_data_source_extensions: bool = False,
+                     working_notifier:Callable[[], None] = None,
+                     **kwargs) -> ChatResponse:
         if self._agent is None: 
             agent = context.get_metadata('agent') or context.get('agent-type') or context.get('agent-name') or context.get('agent-id')
             self._agent = agent_factory(agent)
@@ -31,6 +39,7 @@ class AgentOrchestrator(AbstractProxy):
         if self._agent is None: 
             raise ValueError("No agent specified for the message")
         
+        if working_notifier is not None: working_notifier()
         result = self._agent.process_message(message, context.clone_for_single_shot(with_streamer=True))
         context.add_prompt_to_history(message, 'user')
         context.add_response_to_history(result)

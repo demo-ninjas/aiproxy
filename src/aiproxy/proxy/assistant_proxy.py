@@ -98,7 +98,9 @@ class AssistantProxy(AbstractProxy):
                     function_filter:Callable[[str,str], bool] = None, 
                     use_functions:bool = True, 
                     timeout_secs:int = 0, 
-                    use_completions_data_source_extensions:bool = False) -> ChatResponse:
+                    use_completions_data_source_extensions:bool = False,
+                    working_notifier:Callable[[], None] = None,
+                     **kwargs) -> ChatResponse:
 
         ## Add the user message to the thread history
         context.push_stream_update(SimpleStreamMessage("Recalling our conversation so far", PROGRESS_UPDATE_MESSAGE))

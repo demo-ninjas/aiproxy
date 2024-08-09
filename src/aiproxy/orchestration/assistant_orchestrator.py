@@ -21,5 +21,13 @@ class AssistantOrchestrator(AbstractProxy):
         if not isinstance(self._agent, AssistantAgent):
             raise ValueError("Agent created is not an AssistantAgent")
         
-    def send_message(self, message: str, context: ChatContext, override_model: str = None, override_system_prompt: str = None, function_filter: Callable[[str, str], bool] = None, use_functions: bool = True, timeout_secs: int = 0, use_completions_data_source_extensions: bool = False) -> ChatResponse:
+    def send_message(self, message: str, 
+                     context: ChatContext, 
+                     override_model: str = None, 
+                     override_system_prompt: str = None, 
+                     function_filter: Callable[[str, str], bool] = None, 
+                     use_functions: bool = True, timeout_secs: int = 0, 
+                     use_completions_data_source_extensions: bool = False,
+                     working_notifier:Callable[[], None] = None,
+                     **kwargs) -> ChatResponse:
         return self._agent.process_message(message, context)

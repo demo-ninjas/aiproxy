@@ -102,7 +102,9 @@ class CompletionsProxy(AbstractProxy):
                      function_filter:Callable[[str,str], bool] = None, 
                      use_functions:bool = None, 
                      timeout_secs:int = 0, 
-                     use_completions_data_source_extensions:bool = False
+                     use_completions_data_source_extensions:bool = False,
+                     working_notifier:Callable[[], None] = None,
+                     **kwargs
                      ) -> ChatResponse:
         
         ## Add the user message to the thread history
@@ -346,6 +348,7 @@ class CompletionsProxy(AbstractProxy):
             response.failed = True
             response.error = "Content too Long"
             response.message = "I'm sorry, I wasn't able to succinctly answer your question in the space I had available, I might need to reduce the verbosity of my response next time."
+            more_steps = False
         return more_steps
 
     def __process_data_source_api_response(self, messages, response:ChatResponse, context:ChatContext) -> bool:

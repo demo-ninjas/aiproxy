@@ -245,7 +245,15 @@ class ConsensusOrchestrator(AbstractProxy):
             response_str += f"[{agent.name}]:\n{response.message}\n---\n"
         return response_str
 
-    def send_message(self, message: str, context: ChatContext, override_model: str = None, override_system_prompt: str = None, function_filter: Callable[[str, str], bool] = None, use_functions: bool = True, timeout_secs: int = 0, use_completions_data_source_extensions: bool = False) -> ChatResponse:
+    def send_message(self, message: str, 
+                     context: ChatContext, 
+                     override_model: str = None, 
+                     override_system_prompt: str = None, 
+                     function_filter: Callable[[str, str], bool] = None, 
+                     use_functions: bool = True, timeout_secs: int = 0, 
+                     use_completions_data_source_extensions: bool = False,
+                     working_notifier:Callable[[], None] = None,
+                     **kwargs) -> ChatResponse:
         ## Setup the Agent List
         agents = self._agents
         if len(agents) == 0: 
@@ -267,6 +275,7 @@ class ConsensusOrchestrator(AbstractProxy):
         ## Setup the conversation context
         context.init_history()  ## Ensure the history has been loaded
 
+        if working_notifier is not None: working_notifier()
         intro_prompt = self._introduction_template.format(AGENT_LIST=agent_list_str, USER_PROMPT=message)
         conversation_context = context.clone_for_thread_isolation(thread_id_to_use=context.get_metadata('linked-conversation')) ## Context used for sending conversation messages to agents 
         conversation_context.init_history()
@@ -284,8 +293,10 @@ class ConsensusOrchestrator(AbstractProxy):
             turn += 1
             if turn > max_turns:
                 break
-
+            
+            
             ## Step 1: Ask the Coordinator to select an agent or complete the conversation
+            if working_notifier is not None: working_notifier()
             coordinator_prompt = self._coordinator_template.format(HALF_AGENT_COUNT=half_agent_count, AGENT_COUNT=agent_count, AGENT_LIST=agent_list_str, USER_PROMPT=message, AGENT_RESPONSES=self.build_agent_responses_str(conversation_so_far))
             coordinator_resp = self._coordinator.process_message(coordinator_prompt, context.clone_for_single_shot())
 
@@ -312,6 +323,7 @@ class ConsensusOrchestrator(AbstractProxy):
                     return ChatResponse(message=f"Agent {agent_name} not found in the list of agents")
                 
                 ## Step 3: Ask the selected agent to speak
+                if working_notifier is not None: working_notifier()
                 agent_nudge = arr[2] if len(arr) > 2 else "Please provide your next contribution to the conversation, considering the conversation so far."
                 agent_prompt = self._carry_over_template.format(NUDGE=agent_nudge, AGENT_NAME=agent.name)
                 agent_resp = agent.process_message(agent_prompt, conversation_context)
@@ -330,6 +342,7 @@ class ConsensusOrchestrator(AbstractProxy):
         else:
             summary_prompt = "The conversation was not completed by the agents, perhaps they ran out of turns? Here's the conversation so far:\n\n" + self.build_agent_responses_str(conversation_so_far) + "\n\nPlease respond to the user and ask them how they would like to proceed."
 
+        if working_notifier is not None: working_notifier()
         summary_resp = self._summariser.process_message(summary_prompt, context.clone_for_single_shot(with_streamer=True))
         if summary_resp is None:
             return ChatResponse(message="Summariser did not provide a response")

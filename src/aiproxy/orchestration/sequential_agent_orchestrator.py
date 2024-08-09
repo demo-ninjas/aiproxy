@@ -50,7 +50,15 @@ class SequentialAgentOrchestrator(AbstractProxy):
             agents.append(agent)
         return agents
 
-    def send_message(self, message: str, context: ChatContext, override_model: str = None, override_system_prompt: str = None, function_filter: Callable[[str, str], bool] = None, use_functions: bool = True, timeout_secs: int = 0, use_completions_data_source_extensions: bool = False) -> ChatResponse:
+    def send_message(self, message: str, 
+                     context: ChatContext, 
+                     override_model: str = None, 
+                     override_system_prompt: str = None, 
+                     function_filter: Callable[[str, str], bool] = None, 
+                     use_functions: bool = True, timeout_secs: int = 0, 
+                     use_completions_data_source_extensions: bool = False,
+                     working_notifier:Callable[[], None] = None,
+                     **kwargs) -> ChatResponse:
         agents = self._agents
         if len(agents) == 0: 
             agent_list = context.get_metadata("agents")
@@ -65,6 +73,7 @@ class SequentialAgentOrchestrator(AbstractProxy):
 
         prev_responses = []
         for idx, agent in enumerate(agents):
+            if working_notifier is not None: working_notifier()
             prompt = message
             if self._carry_over_user_prompt and len(prev_responses) > 0:
                 prompt = self._carry_over_template.format(AGENT_RESPONSES="\n\n".join([f"{agent.name}:\n{response.message}" for agent, response in prev_responses]), USER_PROMPT=message)

@@ -39,13 +39,14 @@ class AbstractProxy:
                      function_filter:Callable[[str,str], bool] = None, 
                      use_functions:bool = True, 
                      timeout_secs:int = 0, 
-                     use_completions_data_source_extensions:bool = False
+                     use_completions_data_source_extensions:bool = False,
+                     working_notifier:Callable[[], None] = None,
+                     **kwargs
                      ) -> ChatResponse:
         """
         Send a user message and return the response to the message
         """
         raise NotImplementedError("This method must be implemented by the subclass")
-
 
     @abstractmethod
     def _get_or_create_thread(self, context:ChatContext, override_system_prompt:str = None) -> str:
