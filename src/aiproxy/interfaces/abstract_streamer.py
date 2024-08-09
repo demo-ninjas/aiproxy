@@ -45,12 +45,22 @@ class StreamWriter:
     def push_message(self, message:dict|str, content_type:str = "application/json"):
         if self._message_filter is None or self._message_filter(message):
             if self._async and self._executor is not None: 
-                self._executor.submit(self._push_message, message, content_type)
+                self._executor.submit(self._execute_push_message, message, content_type)
             else: 
                 self._push_message(message, content_type)
     
     def set_executor(self, excutor:ThreadPoolExecutor):
         self._executor = excutor
+
+    def _execute_push_message(self, message:dict|str, content_type:str = "application/json"):
+        try:
+            self._push_message(message, content_type)
+        except Exception as e:
+            import logging
+            import traceback
+            logging.error(f"Error pushing message to stream: {e}")
+            logging.error(traceback.format_exc())
+
 
     @abstractmethod
     def _push_message(self, message:dict|str, content_type:str = "application/json"):
