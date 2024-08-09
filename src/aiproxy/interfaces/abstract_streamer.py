@@ -58,6 +58,7 @@ class StreamWriter:
 
     def _execute_push_message(self, message:dict|str, content_type:str = "application/json"):
         try:
+            import logging
             logging.info(f"Doing message push to stream: {self._stream_id} - {message}")
             self._push_message(message, content_type)
         except Exception as e:
