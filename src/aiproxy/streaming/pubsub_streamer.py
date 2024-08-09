@@ -38,9 +38,6 @@ class PubsubStreamWriter(StreamWriter):
             _STREAM_CLIENT_CACHE[cache_name] = self._stream_client
         
     def _push_message(self, message:dict|str|SimpleStreamMessage, content_type:str = "application/json"):
-        import logging
-        logging.info(f"[STARTING] Sending message to PubSub: {self._stream_id}")
-
         data = message
         if type(message) is SimpleStreamMessage:
             data = message.to_dict()
@@ -49,9 +46,7 @@ class PubsubStreamWriter(StreamWriter):
         elif hasattr(message, 'to_json'):
             data = message.to_json()
 
-        logging.info(f"[DOING] Sending message to PubSub: {self._stream_id} - {data}")
         self._stream_client.send_to_group(group=self._stream_id, message=data, content_type=content_type)
-        logging.info(f"[DONE] Have sent message to PubSub: {self._stream_id} - {data}")
 
     def generate_access_url(self) -> str:
         roles = [f"webpubsub.joinLeaveGroup.{self._stream_id}"]
@@ -70,8 +65,6 @@ class PubsubStreamWriter(StreamWriter):
         ## Use Connection String if provided
         connection_string = config.get('connection') or config.get('connection_string') or os.environ.get('PUBSUB_CONNECTION_STRING', None)
         if connection_string is not None:
-            import logging
-            logging.info(f"Connecting to PubSub CS: {connection_string} - {hub}")
             return WebPubSubServiceClient.from_connection_string(connection_string, hub=hub)
 
         ## Otherwise, use the endpoint and either access key or Managed Identity
@@ -83,6 +76,4 @@ class PubsubStreamWriter(StreamWriter):
         access_key = config.get('access-key') or config.get('key') or os.environ.get('PUBSUB_ACCESS_KEY', None)
         credential = AzureKeyCredential(access_key) if access_key is not None else DefaultAzureCredential()
         
-        import logging
-        logging.info(f"Connecting to PubSub: {endpoint} - {hub}")
         return WebPubSubServiceClient(endpoint=endpoint, hub=hub, credential=credential)
