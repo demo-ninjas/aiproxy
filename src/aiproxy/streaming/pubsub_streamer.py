@@ -35,6 +35,7 @@ class PubsubStreamWriter(StreamWriter):
             self._expiry_mins = config.get('expiry-mins') or os.environ.get('PUBSUB_EXPIRY_MINS', self._expiry_mins)
             self._allow_sending = config.get('allow-sending') or os.environ.get('PUBSUB_ALLOW_SENDING', self._allow_sending)
             self._stream_client = self._connect_to_pubsub(config)
+            self._stream_client._client._base_url = '{Endpoint}' ## Path the broken SDK
             _STREAM_CLIENT_CACHE[cache_name] = self._stream_client
         
     def _push_message(self, message:dict|str|SimpleStreamMessage, content_type:str = "application/json"):
@@ -65,7 +66,7 @@ class PubsubStreamWriter(StreamWriter):
         ## Use Connection String if provided
         connection_string = config.get('connection') or config.get('connection_string') or os.environ.get('PUBSUB_CONNECTION_STRING', None)
         if connection_string is not None:
-            return WebPubSubServiceClient.from_connection_string(connection_string, hub=hub)
+            return WebPubSubServiceClient.from_connection_string(connection_string=connection_string, hub=hub)
 
         ## Otherwise, use the endpoint and either access key or Managed Identity
         endpoint = config.get('endpoint') or os.environ.get('PUBSUB_ENDPOINT', None)
