@@ -74,6 +74,6 @@ class AssistantAgent(Agent):
                         response.metadata.update(resp.metadata)
         
         context.add_prompt_to_history(message, "user")
-        context.add_response_to_history(result)
+        context.add_response_to_history(response)
         context.save_history()
         return response
