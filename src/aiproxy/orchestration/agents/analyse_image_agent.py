@@ -123,7 +123,7 @@ class AnalyseImageAgent(Agent):
             for tile in tiles:
                 # Convert the image to base64
                 buffered = io.BytesIO()
-                tile.save(buffered, format=img_ext)
+                tile.save(buffered, format=img_ext.lower())
                 img_str = base64.b64encode(buffered.getvalue()).decode()
                 content.append({
                     "type": "image_url",
