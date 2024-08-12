@@ -118,12 +118,15 @@ class AnalyseImageAgent(Agent):
             
             # Check with the context if the it knows the extension of the image
             img_ext = context.get_metadata("image-extension") or context.get_metadata("file-extension") or image.format or self._default_image_extension
+            img_ext = img_ext.upper()
+            if img_ext == 'JPG': 
+                img_ext = 'JPEG'
             # img_ext = context.get_metadata("image-extension", image.format or self._default_image_extension)
         
             for tile in tiles:
                 # Convert the image to base64
                 buffered = io.BytesIO()
-                tile.save(buffered, format=img_ext.lower())
+                tile.save(buffered, format=img_ext)
                 img_str = base64.b64encode(buffered.getvalue()).decode()
                 content.append({
                     "type": "image_url",
