@@ -177,11 +177,24 @@ def load_configs(only_public:bool = True) -> list[dict]:
     orchestrators.sort(key=lambda x: x['name'])
     return orchestrators
 
-def update_config(config:dict):
+def update_config(config:dict, by_user:str = None):
     """
     Updates the config in the CosmosDB
     """
     from aiproxy.functions.cosmosdb import upsert_item
+    from .date import now_millis
+    import os
+    
+    if os.environ.get("BACKUP_CONFIGS_BEFORE_UPDATE", "true").lower() == "true":
+        backup_config_name = os.environ.get("CONFIGS_BACKUP_COSMOS_CONFIG", "config-backups")
+        bk_config = config.copy()
+        bk_config["archived_ts"] = now_millis()
+        bk_config["_id"] = config.get('id', "?")
+        if by_user is not None:
+            bk_config["archived_by"] = by_user
+        bk_config["id"] = f"{config.get('id', '?')}_{bk_config['archived_ts']}"
+        upsert_item(bk_config, source=backup_config_name)
+
     cosmos_config_name = os.environ.get("CONFIGS_COSMOS_CONFIG", "configs")
     upsert_item(config, source=cosmos_config_name)
 
