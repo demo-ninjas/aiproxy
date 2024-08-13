@@ -297,6 +297,7 @@ class ConsensusOrchestrator(AbstractProxy):
             
             ## Step 1: Ask the Coordinator to select an agent or complete the conversation
             if working_notifier is not None: working_notifier()
+            context.push_stream_update("Checking in with the consensus co-ordinator", "step")
             coordinator_prompt = self._coordinator_template.format(HALF_AGENT_COUNT=half_agent_count, AGENT_COUNT=agent_count, AGENT_LIST=agent_list_str, USER_PROMPT=message, AGENT_RESPONSES=self.build_agent_responses_str(conversation_so_far))
             coordinator_resp = self._coordinator.process_message(coordinator_prompt, context.clone_for_single_shot())
 
@@ -305,8 +306,10 @@ class ConsensusOrchestrator(AbstractProxy):
                 return ChatResponse(message="Coordinator did not provide a response")
             elif coordinator_resp.message.lower().strip() == "complete":
                 conversation_complete = True
+                context.push_stream_update("Coordinator is satisfied that prompt has been fulfilled", "step")
                 break
             elif coordinator_resp.message.lower().strip().startswith("question"):
+                context.push_stream_update("Coordinator wishes to pose a question back to user", "step")
                 question = coordinator_resp.message.strip().split(":", 1)[1]
                 conversation_context.add_prompt_to_history(f"Coordinator:\nPosing the following question back to the user:\n\n{question}", 'assistant')
                 question_back_to_user = question
@@ -323,6 +326,7 @@ class ConsensusOrchestrator(AbstractProxy):
                     return ChatResponse(message=f"Agent {agent_name} not found in the list of agents")
                 
                 ## Step 3: Ask the selected agent to speak
+                context.push_stream_update(f"{agent.name} is now speaking", "step")
                 if working_notifier is not None: working_notifier()
                 agent_nudge = arr[2] if len(arr) > 2 else "Please provide your next contribution to the conversation, considering the conversation so far."
                 agent_prompt = self._carry_over_template.format(NUDGE=agent_nudge, AGENT_NAME=agent.name)
@@ -334,6 +338,7 @@ class ConsensusOrchestrator(AbstractProxy):
                 conversation_so_far.append((agent, agent_resp))
 
         
+        context.push_stream_update(f"Coordinator is summarising outcome from the group chat", "step")
         summary_prompt = None
         if conversation_complete:
             summary_prompt = self._summary_template.format(AGENT_LIST=agent_list_str, USER_PROMPT=message, AGENT_RESPONSES=self.build_agent_responses_str(conversation_so_far), SUMMARY_RULES=self._summary_rules)
@@ -348,6 +353,7 @@ class ConsensusOrchestrator(AbstractProxy):
             return ChatResponse(message="Summariser did not provide a response")
         else:
             summary_resp.add_metadata('participants', [a.name for a,m in conversation_so_far])
+            summary_resp.add_metadata('turns', turn)
             context.add_prompt_to_history(message, 'user')
             context.add_response_to_history(summary_resp)
             context.save_history()
