@@ -35,7 +35,8 @@ class PubsubStreamWriter(StreamWriter):
             self._expiry_mins = config.get('expiry-mins') or os.environ.get('PUBSUB_EXPIRY_MINS', self._expiry_mins)
             self._allow_sending = config.get('allow-sending') or os.environ.get('PUBSUB_ALLOW_SENDING', self._allow_sending)
             self._stream_client = self._connect_to_pubsub(config)
-            self._stream_client._client._base_url = '{Endpoint}' ## Path the broken SDK
+            if os.environ.get('PUBSUB_PATCH_SDK_ENDPOINT', "false") == "true":
+                self._stream_client._client._base_url = '{Endpoint}' ## Path the broken SDK
             _STREAM_CLIENT_CACHE[cache_name] = self._stream_client
         
     def _push_message(self, message:dict|str|SimpleStreamMessage, content_type:str = "application/json"):
