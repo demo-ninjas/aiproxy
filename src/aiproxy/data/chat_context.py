@@ -13,6 +13,7 @@ class ChatContext:
     function_filter:Callable[[str,str], bool] = None
     metadata:dict[str, any] = None
     metadata_transient_keys:list[str] = None
+    current_msg_id:str = None
 
     def __init__(self, 
                  thread_id:str = None, 

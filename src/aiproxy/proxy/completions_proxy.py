@@ -140,7 +140,7 @@ class CompletionsProxy(AbstractProxy):
             filter_for_tool_calls = function_filter or context.function_filter
 
             tool_list = GLOBAL_FUNCTIONS_REGISTRY.generate_tools_definition(filter_for_tool_calls) if using_functions else None
-            chunk_data = ChunkData() if context.has_stream() else None
+            chunk_data = ChunkData(context.current_msg_id) if context.has_stream() else None
             while more_steps and step_count < self._config.max_steps:
                 if remaining_secs <= 0:
                     raise TimeoutError("The request timed out")
