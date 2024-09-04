@@ -463,7 +463,7 @@ class StepPlanOrchestrator(AbstractProxy):
                         directive = directive[1:]
 
                     # Now, use the object functions to get the field from the object as described by the directive
-                    import functions.object_functions as obj_funcs
+                    import aiproxy.functions.object_functions as obj_funcs
                     var_value = obj_funcs.get_obj_field(var_value, directive)
                         
                 args[key] = var_value
@@ -585,6 +585,7 @@ class StepPlanOrchestrator(AbstractProxy):
         )
 
         resp_context = context.clone_for_single_shot(with_streamer=True)
+        resp_context.current_msg_id = context.current_msg_id        ## Ensure that the output message is associated with the same message ID as the message ID assigned by the framework (if there is one)
         
         # Provide a custom arg pre-processor that will add the vars argument
         original_req_preprocessor = context.function_args_preprocessor
