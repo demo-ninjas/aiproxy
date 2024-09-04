@@ -62,6 +62,10 @@ def load_named_config(name:str, raise_if_not_found:bool = True, use_cache:bool =
                 if type(v) == str:
                     if v.startswith("$"):
                         config_item[k] = os.environ.get(v[1:], v)
+                    elif v.startswith("@"):
+                        config_item[k] = load_named_config(v[1:], raise_if_not_found, use_cache)
+                    elif v.startswith("!"):
+                        config_item[k] = load_text_file(v[1:])
 
         if use_cache: 
             ## Cache the config
@@ -69,6 +73,23 @@ def load_named_config(name:str, raise_if_not_found:bool = True, use_cache:bool =
     
     return config_item
 
+def load_text_file(file_path:str) -> str:
+    """
+    Loads the contents of a text file
+    """
+    while file_path.startswith("/"):
+        full_path = file_path[1:]
+    if '..' in file_path:
+        raise ValueError(f"Invalid file path: {file_path}")
+    
+    full_path = CONFIGS_DIR + "/" + file_path
+    if not os.path.exists(full_path):
+        full_path = CONFIGS_DIR + "/" + file_path + ".txt"
+    if not os.path.exists(full_path):
+        raise ValueError(f"File not found: {file_path}")
+
+    with open(file_path, 'r') as f:
+        return f.read()
 
 def load_public_orchestrator_list() -> list[dict]:
     """

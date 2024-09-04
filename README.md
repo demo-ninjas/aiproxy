@@ -331,6 +331,42 @@ eg. The following is a configuration for the provided `search` base function, it
 
 In this case, the `endpoint` and `query-key` will be set to the environment variables `SEARCH_API_ENDPOINT` and `SEARCH_API_KEY`.
 
+
+### Refering to other configs
+
+Sometimes it makes sense to separate a field value into a separate config. To facilitate this, you can prefix a value with an `@` symbol - this informs the config loader that the value is the name of a config to use as the value for this field.
+
+eg. The following is a configuration for the `search` base function that loads a the vector fields configuration from a separate config: 
+
+```JSON
+{
+    "id": "recipe-index",
+    "endpoint": "$SEARCH_API_ENDPOINT",
+    "index": "recipes",
+    "query-key": "$SEARCH_API_KEY",
+    "embedding-model": "text-embedding-ada-002",
+    "semantic-config": "Default",
+    "scoring-profile": "Default",
+    "vector-fields": "@core-vector-fields"
+}
+```
+In this case, the value of `vector-fields` will be the parsed result of the `core-vector-fields` config.
+
+### Refering to a local text file
+
+Sometimes is makes sense to separate a field value into a separate text file that is stored locally within the local configs directory. To facilitate this, you can prefix a value with a `!` symbol - this informs the config loader that the value is the name of a text file to load from the local configs directory.
+
+eg. The following config loads the system prompt from a text file: 
+
+```JSON
+{
+    "id": "awesome-config", 
+    "type": "completion",
+    "system-prompt": "!system-prompt.txt"
+}
+```
+In this case, the value of the `system-prompt` field will be the contents of the `system-prompt.txt` file located within the local configs directory.
+
 ### Prompt Templates
 
 When you define system prompts (and optionally for user prompts) you can treat them as a template, and apply substitutions within the prompt at runtime.
