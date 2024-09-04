@@ -88,7 +88,7 @@ def load_text_file(file_path:str) -> str:
     if not os.path.exists(full_path):
         raise ValueError(f"File not found: {file_path}")
 
-    with open(file_path, 'r') as f:
+    with open(full_path, 'r') as f:
         return f.read()
 
 def load_public_orchestrator_list() -> list[dict]:
