@@ -400,6 +400,7 @@ class StepPlanOrchestrator(AbstractProxy):
             if step.get('executed', False): # Skip steps that have already been executed
                 continue    
             
+            step_progression_error_comment = "Failed whilst initialising step"
             try:
                 if working_notifier is not None: working_notifier()
                 func_name = step.get('function').strip()
@@ -407,21 +408,25 @@ class StepPlanOrchestrator(AbstractProxy):
                 output_var = step.get('output')
                 condition = step.get('condition')
 
+                step_progression_state = "Failed when parsing output variable declaration"
                 prompt_context.push_stream_update("Executing step: " + step.get('step'), "step")
                 if output_var is not None and output_var.startswith("$"):
                     output_var = output_var[1:]
 
                 if condition is not None:
                     ## Evaluate the condition
+                    step_progression_state = "Failed when evaluating the step condition"
                     condition_result = self.evaluate_step_condition(prompt_context, condition, context_map, step_results, steps)
                     if not condition_result:
                         step['executed'] = False
                         continue
 
                 if not func_name:
+                    step_progression_state = "The Function name was not provided"
                     raise ValueError("Function name not provided in the step")
 
                 if func_name == 'generate_final_response':
+                    step_progression_state = "Failed when generating the final response - perhaps the generated response was too long?"
                     result = self.generate_final_response(original_prompt, 
                                                         data=func_args.get('data'),
                                                         intent=func_args.get('intent'), 
@@ -430,6 +435,7 @@ class StepPlanOrchestrator(AbstractProxy):
                                                         steps=steps,
                                                         context=prompt_context)
                 elif func_name == 're-evaluate-plan':
+                    step_progression_state = "Failed to request a re-evaluation of the plan"
                     ## Send a message to the planner to re-evaluate the plan given the current state of the context + plan
                     step, steps_executed_str, executed_steps = self.generate_steps_executed_string(steps)
                     context_vars_str = self.generate_context_vars_string(context_map)
@@ -451,6 +457,7 @@ class StepPlanOrchestrator(AbstractProxy):
                     ## Note: We are recursively calling the execute_steps function here, this limits the number of times we can go back to the planner to re-evaluate the plan to the number of times the function is called before the stack overflows - but for now it's easier to do it this way ;p
                 else: 
                     if func_name not in self._function_list and func_name != 'generate_final_response':
+                        step_progression_state = "The function for this step was not found in the list of available functions"
                         raise ValueError(f"Function {func_name} not in the list of available functions")
 
                     func_def = GLOBAL_FUNCTIONS_REGISTRY[func_name]
@@ -464,15 +471,18 @@ class StepPlanOrchestrator(AbstractProxy):
                                                         steps=steps,
                                                         context=prompt_context)
                         else: 
+                            step_progression_state = "The function for this step was not found in the global functions registry"
                             raise ValueError(f"Function {func_name} not found in the global functions registry")
                     else: 
                         ## Replace any context variables in the arguments
+                        step_progression_state = "Failed to parse the arguments for the function - perhaps try specifying the arguments differently? Are you missing an argument? Are you trying to use python syntax (which is not allowed?)"
                         args = {}
                         for arg_name, arg_val in func_args.items():
                             if arg_name in func_def.ai_args:
                                 self._parse_value_directives(prompt_context, context_map, args, arg_name, arg_val)
                         
                         ## Execute the function
+                        step_progression_state = "Failed when executing the step's function - consider the error message for more information about why it failed"
                         result = invoke_registered_function(func_name, args, prompt_context, cast_result_to_string=False, sys_objects={ 'vars': context_map,'steps':steps })
                 
                 if output_var:
@@ -490,11 +500,13 @@ class StepPlanOrchestrator(AbstractProxy):
                     context_vars_str = self.generate_context_vars_string(context_map)
 
                     ## Add a preamble to the prompt if we've gone over the max number of iterations
-
+                    
                     preamble = f"""
-                    The step '{step.get('step')}' failed to execute with the following error: {str(ex)}
+                    The step '{step.get('step')}' failed to execute, with the following reason: {step_progression_state}
+                    
+                    The Error Message was: {str(ex)}
 
-                    Can you re-evaluate the plan perhaps with a different approach for this step?
+                    Can you re-evaluate the plan, considering a different approach for this step?
                     
                     """
                     prompt = RE_EVALUATE_STEP_PLAN_PROMPT_TEMPLATE.format(
@@ -507,7 +519,7 @@ class StepPlanOrchestrator(AbstractProxy):
                     updated_plan_result = self._proxy.send_message(prompt, planner_ctx, self._planner_model, use_functions=True, function_filter=function_filter)
                     new_steps = self.validate_step_plan(original_prompt, updated_plan_result)
                     full_step_list = executed_steps + new_steps
-                    return self.execute_steps(original_prompt, prompt_context, working_notifier, planner_ctx, full_step_list, context_map, step_results, iterator_count+1)
+                    return self.execute_steps(original_prompt, prompt_context, working_notifier, planner_ctx, full_step_list, context_map, step_results, iterator_count+2) ## Error retry is worth 2 iterations ;p
 
 
 
@@ -671,6 +683,9 @@ class StepPlanOrchestrator(AbstractProxy):
             ## It's a function
             func_name = val[:val.index("(")]
             args_str = val[val.index("(")+1:val.index(")")]
+            if args_str.startswith("$"):
+                args_str = context_map.get(args_str[1:])
+
             args = []
             for arg in args_str.split(','):
                 arg = arg.strip()
