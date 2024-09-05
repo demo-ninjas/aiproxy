@@ -67,6 +67,7 @@ Here is another example of a plan, this time an interim plan that uses the 're-e
 {{ "step": "Step 1: REASON FOR TAKING STEP", "function": "Function_Name", "args": {{ "arg1": "value1", "arg2": "value2", ... }}, "output": "$CONTEXT_VARIABLE_NAME" }}
 {{ "step": "Step 2: REASON FOR TAKING STEP", "condition": "len($CONTEXT_VARIABLE_NAME) > 0", "function": "Function_Name", "args": {{ "arg1": "$CONTEXT_VARIABLE_NAME", "arg2": 123, ... }} }}
 {{ "step": "Step 3: Determine next steps", "function": "re-evaluate-plan" }}
+##END##
 
 In the above example, at Step 3, the plan will be re-evaluated and new steps added based on the result of steps 1 and 2.
 This is a great mechanism you can use to build a plan iteratively, where you can re-evaluate the plan after a few steps to determine the next steps to take.
@@ -80,13 +81,13 @@ Following describes the structure of a plan step:
 
 Important: The last step in the final plan MUST always be the 'generate_final_response' function (Except if you're generating an interim plan, in which case the 're-evaluate-plan' step can be used as the last step, as the final plan is not determined yet).
 
-The last step must be a call to a special function (not listed in the function list above) called 'generate_final_response', and it should be called with the following arguments:
+In a final plan, the last step must be a call to the special function called 'generate_final_response', and it should be called with the following arguments:
 * original_prompt - The original prompt from the the user
 * data - A list of context variables that would be relevant to An AI that is writing up the final response to the user's prompt
 * intent - A string that describes what you believe is the intent of the user's prompt
 * hint - A string that helps to describe what the answer to the user's prompt would be ( this will be passed as a hint to the AI generating the final response)
 
-Conditions are defines as a string that is a comparison between two values, where the comparison is one of the following: '==', '!=', '>', '<', '>=', '<='.
+Conditions are defined as a string that is a comparison between two values, where the comparison is one of the following: '==', '!=', '>', '<', '>=', '<='.
 
 A condition value can be any of the following: 
 * A context variable (a string prefixed with a '$')
