@@ -11,7 +11,7 @@ def calculate(
     """
 
     if expression is None or len(expression) == 0:
-        return None
+        return 0
     
     if '$' in expression and vars is not None:
         for k,v in vars.items():
