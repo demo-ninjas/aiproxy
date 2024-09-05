@@ -468,17 +468,25 @@ class StepPlanOrchestrator(AbstractProxy):
 
                 func_def = GLOBAL_FUNCTIONS_REGISTRY[func_name]
                 if not func_def:
-                    raise ValueError(f"Function {func_name} not found in the global functions registry")
-
-                ## Replace any context variables in the arguments
-                args = {}
-                for arg_name, arg_val in func_args.items():
-                    if arg_name in func_def.ai_args:
-                        self._parse_value_directives(prompt_context, context_map, args, arg_name, arg_val)
-                
-
-                ## Execute the function
-                result = invoke_registered_function(func_name, args, prompt_context, cast_result_to_string=False, sys_objects={ 'vars': context_map,'steps':steps })
+                    if func_name == 'generate_final_response':
+                        result = self.generate_final_response(original_prompt, 
+                                                      data=func_args.get('data'),
+                                                      intent=func_args.get('intent'), 
+                                                      hint=func_args.get('hint'),
+                                                      vars=context_map,
+                                                      steps=steps,
+                                                      context=prompt_context)
+                    else: 
+                        raise ValueError(f"Function {func_name} not found in the global functions registry")
+                else: 
+                    ## Replace any context variables in the arguments
+                    args = {}
+                    for arg_name, arg_val in func_args.items():
+                        if arg_name in func_def.ai_args:
+                            self._parse_value_directives(prompt_context, context_map, args, arg_name, arg_val)
+                    
+                    ## Execute the function
+                    result = invoke_registered_function(func_name, args, prompt_context, cast_result_to_string=False, sys_objects={ 'vars': context_map,'steps':steps })
             
             if output_var:
                 context_map[output_var] = result
