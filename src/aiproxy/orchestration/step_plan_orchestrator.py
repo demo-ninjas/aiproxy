@@ -399,101 +399,142 @@ class StepPlanOrchestrator(AbstractProxy):
         for step in steps:
             if step.get('executed', False): # Skip steps that have already been executed
                 continue    
-
-            if working_notifier is not None: working_notifier()
-            func_name = step.get('function').strip()
-            func_args = step.get('args') or {}
-            output_var = step.get('output')
-            condition = step.get('condition')
-
-            prompt_context.push_stream_update("Executing step: " + step.get('step'), "step")
-            if output_var is not None and output_var.startswith("$"):
-                output_var = output_var[1:]
-
-            if condition is not None:
-                ## Evaluate the condition
-                condition_result = self.evaluate_step_condition(prompt_context, condition, context_map, step_results, steps)
-                if not condition_result:
-                    step['executed'] = False
-                    continue
-
-            if not func_name:
-                raise ValueError("Function name not provided in the step")
-
-            if func_name == 'generate_final_response':
-                result = self.generate_final_response(original_prompt, 
-                                                      data=func_args.get('data'),
-                                                      intent=func_args.get('intent'), 
-                                                      hint=func_args.get('hint'),
-                                                      vars=context_map,
-                                                      steps=steps,
-                                                      context=prompt_context)
-            elif func_name == 're-evaluate-plan':
-                ## Send a message to the planner to re-evaluate the plan given the current state of the context + plan
-                steps_executed_str = ""
-                executed_steps = [ x for x in steps if x.get('executed', False) ]
-                for step in executed_steps: 
-                    step_desc = step.get('step') or "<unnamed>"
-                    step_func = step.get('function') or "<no function>"
-                    step_context_var = step.get('output') or "<no output>"
-                    steps_executed_str += f"- Step: {step_desc}, function: {step_func}, Output Variable: {step_context_var}\n"
             
-                context_vars_str = ""
-                for var_name, var_val in context_map.items():
-                    var_val_str = str(var_val)
-                    if type(var_val) is dict or type(var_val) is list:
-                        var_val_str = json.dumps(var_val, indent=2)
-                    if len(var_val_str) > 1000:
-                        var_val_str = var_val_str[:1000] + "...truncated..."
-                    context_vars_str += f"- {var_name}: {var_val_str}\n"
+            try:
+                if working_notifier is not None: working_notifier()
+                func_name = step.get('function').strip()
+                func_args = step.get('args') or {}
+                output_var = step.get('output')
+                condition = step.get('condition')
 
-                ## Add a preamble to the prompt if we've gone over the max number of iterations
-                preamble = "\nTHIS IS THE FINAL TIME YOU CAN RE-EVALUATE THE PLAN - PLEASE GENERATE A FINAL PLAN!\n" if iterator_count > self._config.get("max-plan-iterations", 15) else ""
+                prompt_context.push_stream_update("Executing step: " + step.get('step'), "step")
+                if output_var is not None and output_var.startswith("$"):
+                    output_var = output_var[1:]
 
-                prompt = RE_EVALUATE_STEP_PLAN_PROMPT_TEMPLATE.format(
-                    steps_executed=steps_executed_str,
-                    context_variables=context_vars_str, 
-                    preamble=preamble
-                )
+                if condition is not None:
+                    ## Evaluate the condition
+                    condition_result = self.evaluate_step_condition(prompt_context, condition, context_map, step_results, steps)
+                    if not condition_result:
+                        step['executed'] = False
+                        continue
 
-                function_filter = lambda x,y: x in ['get_dict_val', 'filter_list', 'get_obj_field', 'random_choice', 'merge_lists', 'calculate']
-                updated_plan_result = self._proxy.send_message(prompt, planner_ctx, self._planner_model, use_functions=True, function_filter=function_filter)
-                new_steps = self.validate_step_plan(original_prompt, updated_plan_result)
-                full_step_list = executed_steps + new_steps
-                return self.execute_steps(original_prompt, prompt_context, working_notifier, planner_ctx, full_step_list, context_map, step_results, iterator_count+1)
-                ## Note: We are recursively calling the execute_steps function here, this limits the number of times we can go back to the planner to re-evaluate the plan to the number of times the function is called before the stack overflows - but for now it's easier to do it this way ;p
-            else: 
-                if func_name not in self._function_list and func_name != 'generate_final_response':
-                    raise ValueError(f"Function {func_name} not in the list of available functions")
+                if not func_name:
+                    raise ValueError("Function name not provided in the step")
 
-                func_def = GLOBAL_FUNCTIONS_REGISTRY[func_name]
-                if not func_def:
-                    if func_name == 'generate_final_response':
-                        result = self.generate_final_response(original_prompt, 
-                                                      data=func_args.get('data'),
-                                                      intent=func_args.get('intent'), 
-                                                      hint=func_args.get('hint'),
-                                                      vars=context_map,
-                                                      steps=steps,
-                                                      context=prompt_context)
-                    else: 
-                        raise ValueError(f"Function {func_name} not found in the global functions registry")
+                if func_name == 'generate_final_response':
+                    result = self.generate_final_response(original_prompt, 
+                                                        data=func_args.get('data'),
+                                                        intent=func_args.get('intent'), 
+                                                        hint=func_args.get('hint'),
+                                                        vars=context_map,
+                                                        steps=steps,
+                                                        context=prompt_context)
+                elif func_name == 're-evaluate-plan':
+                    ## Send a message to the planner to re-evaluate the plan given the current state of the context + plan
+                    step, steps_executed_str, executed_steps = self.generate_steps_executed_string(steps)
+                    context_vars_str = self.generate_context_vars_string(context_map)
+
+                    ## Add a preamble to the prompt if we've gone over the max number of iterations
+                    preamble = "\nTHIS IS THE FINAL TIME YOU CAN RE-EVALUATE THE PLAN - PLEASE GENERATE A FINAL PLAN!\n" if iterator_count > self._config.get("max-plan-iterations", 15) else ""
+
+                    prompt = RE_EVALUATE_STEP_PLAN_PROMPT_TEMPLATE.format(
+                        steps_executed=steps_executed_str,
+                        context_variables=context_vars_str, 
+                        preamble=preamble
+                    )
+
+                    function_filter = lambda x,y: x in ['get_dict_val', 'filter_list', 'get_obj_field', 'random_choice', 'merge_lists', 'calculate']
+                    updated_plan_result = self._proxy.send_message(prompt, planner_ctx, self._planner_model, use_functions=True, function_filter=function_filter)
+                    new_steps = self.validate_step_plan(original_prompt, updated_plan_result)
+                    full_step_list = executed_steps + new_steps
+                    return self.execute_steps(original_prompt, prompt_context, working_notifier, planner_ctx, full_step_list, context_map, step_results, iterator_count+1)
+                    ## Note: We are recursively calling the execute_steps function here, this limits the number of times we can go back to the planner to re-evaluate the plan to the number of times the function is called before the stack overflows - but for now it's easier to do it this way ;p
                 else: 
-                    ## Replace any context variables in the arguments
-                    args = {}
-                    for arg_name, arg_val in func_args.items():
-                        if arg_name in func_def.ai_args:
-                            self._parse_value_directives(prompt_context, context_map, args, arg_name, arg_val)
+                    if func_name not in self._function_list and func_name != 'generate_final_response':
+                        raise ValueError(f"Function {func_name} not in the list of available functions")
+
+                    func_def = GLOBAL_FUNCTIONS_REGISTRY[func_name]
+                    if not func_def:
+                        if func_name == 'generate_final_response':
+                            result = self.generate_final_response(original_prompt, 
+                                                        data=func_args.get('data'),
+                                                        intent=func_args.get('intent'), 
+                                                        hint=func_args.get('hint'),
+                                                        vars=context_map,
+                                                        steps=steps,
+                                                        context=prompt_context)
+                        else: 
+                            raise ValueError(f"Function {func_name} not found in the global functions registry")
+                    else: 
+                        ## Replace any context variables in the arguments
+                        args = {}
+                        for arg_name, arg_val in func_args.items():
+                            if arg_name in func_def.ai_args:
+                                self._parse_value_directives(prompt_context, context_map, args, arg_name, arg_val)
+                        
+                        ## Execute the function
+                        result = invoke_registered_function(func_name, args, prompt_context, cast_result_to_string=False, sys_objects={ 'vars': context_map,'steps':steps })
+                
+                if output_var:
+                    context_map[output_var] = result
+                step['executed'] = True
+                step_results.append(result)
+            except Exception as ex:
+                step['executed'] = False
+                if iterator_count > self._config.get("max-plan-iterations", 15):
+                    logging.error(f"Failed to execute step: {step.get('step')} - with error: {str(ex)} - will not re-evaluate the plan")
+                    raise ex
+                else: 
+                    logging.error(f"Failed to execute step: {step.get('step')} - with error: {str(ex)} - will ask the planner to re-think its plan")
+                    step, steps_executed_str, executed_steps = self.generate_steps_executed_string(steps)
+                    context_vars_str = self.generate_context_vars_string(context_map)
+
+                    ## Add a preamble to the prompt if we've gone over the max number of iterations
+
+                    preamble = f"""
+                    The step '{step.get('step')}' failed to execute with the following error: {str(ex)}
+
+                    Can you re-evaluate the plan perhaps with a different approach for this step?
                     
-                    ## Execute the function
-                    result = invoke_registered_function(func_name, args, prompt_context, cast_result_to_string=False, sys_objects={ 'vars': context_map,'steps':steps })
-            
-            if output_var:
-                context_map[output_var] = result
-            step['executed'] = True
-            step_results.append(result)
+                    """
+                    prompt = RE_EVALUATE_STEP_PLAN_PROMPT_TEMPLATE.format(
+                        steps_executed=steps_executed_str,
+                        context_variables=context_vars_str, 
+                        preamble=preamble
+                    )
+
+                    function_filter = lambda x,y: x in ['get_dict_val', 'filter_list', 'get_obj_field', 'random_choice', 'merge_lists', 'calculate']
+                    updated_plan_result = self._proxy.send_message(prompt, planner_ctx, self._planner_model, use_functions=True, function_filter=function_filter)
+                    new_steps = self.validate_step_plan(original_prompt, updated_plan_result)
+                    full_step_list = executed_steps + new_steps
+                    return self.execute_steps(original_prompt, prompt_context, working_notifier, planner_ctx, full_step_list, context_map, step_results, iterator_count+1)
+
+
 
         return [ x for x in steps if x.get('executed', False) ]
+
+    def generate_context_vars_string(self, context_map):
+        context_vars_str = ""
+        for var_name, var_val in context_map.items():
+            var_val_str = str(var_val)
+            if type(var_val) is dict or type(var_val) is list:
+                var_val_str = json.dumps(var_val, indent=2)
+            if len(var_val_str) > 1000:
+                var_val_str = var_val_str[:1000] + "...truncated..."
+            context_vars_str += f"- {var_name}: {var_val_str}\n"
+        return context_vars_str
+
+    def generate_steps_executed_string(self, steps):
+        steps_executed_str = ""
+        executed_steps = [ x for x in steps if x.get('executed', False) ]
+        for step in executed_steps: 
+            step_desc = step.get('step') or "<unnamed>"
+            step_func = step.get('function') or "<no function>"
+            step_context_var = step.get('output') or "<no output>"
+            steps_executed_str += f"- Step: {step_desc}, function: {step_func}, Output Variable: {step_context_var}\n"
+        return step,steps_executed_str,executed_steps
+    
+            
 
     def _parse_value_directives(self, context:ChatContext, variables:dict, args:dict, key:str, value:any):
         """
