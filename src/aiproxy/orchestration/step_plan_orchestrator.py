@@ -240,6 +240,7 @@ class StepPlanOrchestrator(AbstractProxy):
         self._responder_preamble = self._config['responder-preamble'] or ''
         self._rules = self._config['rules'] or ''
         self._function_list = self._config['functions'] or None
+        self._exclude_function_list = self._config['exclude-functions'] or None
         self._functions = self._build_available_functions()
         self._planner_model = self._config['planner-model'] or self._config['model'] or None
         self._responder_model = self._config['responder-model'] or self._config['model'] or None
@@ -260,7 +261,9 @@ class StepPlanOrchestrator(AbstractProxy):
 
         if self._function_list is None: 
             self._function_list = GLOBAL_FUNCTIONS_REGISTRY.get_all_function_names()
-            
+            if self._exclude_function_list is not None:
+                self._function_list = [ x for x in self._function_list if x not in self._exclude_function_list ]
+        
         available_functions = ''
         for function in self._function_list:
             function_def = GLOBAL_FUNCTIONS_REGISTRY[function]

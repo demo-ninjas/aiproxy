@@ -725,6 +725,7 @@ Following are the available configuration options you can use to customise the o
 * `responder-preamble` - Allows you to add a preamble to the responder system prompt, enabling you to apply some specific guardrails to the AI that is authoring the final response
 * `rules` - Allows you to specify a set of *rules* for the planner - these rules can provide certain restrictions on how the planner should operate, or some examples/notes that might be useful for the planner to know
 * `functions` - A list of the names of the function(s) that are available to be used for steps of the plan (where a step is the invocation of one of these functions) [Note not specifying a list of functions will result in the full list of registered functions being made available]
+* `exclude-functions` - A list of the names of the functions that you want excluded from the function list (only applies if you don't specify a function list and the global function list is used)
 * `planner-model` - The AI model deployment to use for the planner
 * `responder-model` - The AI model deployment to use for the responder
 * `proxy` - The name/config of the proxy to use for both the planner and the responder
