@@ -64,7 +64,15 @@ def run(streamer:StreamWriter):
         raise Exception("Loaded proxy is not a StepPlanOrchestrator")
     
     context = ChatContext(None, stream=streamer)
-    q = "I have a family of 4, 2 adults and 2 children. We all love pasta and pizza. The kids dislike mushrooms. I am looking for some easy to make recipes that the whole family will enjoy."
+    # q = "I have a family of 4, 2 adults and 2 children. We all love pasta and pizza. The kids dislike mushrooms. I am looking for some easy to make recipes that the whole family will enjoy."
+    q = """I have a family of 4, 2 adults and 2 children. We all love pasta and pizza. 
+    The kids dislike mushrooms and olives and garlic. 
+    I want to make sure that it doesn't take more than about 30 minutes to prepare the meal.
+    Start by finding a pizza recipe that works for the family. 
+    Have a look at the pizza recipes you find, and if they look like they'll work, then tell me their names and the ingredients in them. 
+    If you don't like the look of the pizza recipes, then find a suitable pasta recipe.
+    Again, if they don't look good, then find a curry recipe that works for the family.
+    """
     print(f"Question: {q}")
     resp = step_orchestrator.send_message(q, context)
     print(resp.message)

@@ -34,14 +34,22 @@ The format for the list of available functions is as follows:
 
 {available_functions}
 
+Special Functions: 
+
+* generate_final_response - This function is used to generate the final response to the user prompt. It should be the last step in the final plan.
+* re-evaluate-plan - This function is used to re-evaluate the plan given the current information gathered so far. It should be used when the next steps in a plan are not clear and therefore the plan needs to be re-evaluated after completing the previous steps
+
 [END AVAILABLE FUNCTIONS]
 
-To create a plan, follow these steps:
-1. From a user prompt, create a [PLAN] to fulfill the prompt goal as a series of function calls (non "chat" functions are quick and can be used many times).
+Use your judgement to decide if you should create a full plan now, or iteratively create a plan and only generate an interim plan now.
+
+When creating a plan (final or interim), follow these steps:
+1. From a user prompt, create a [PLAN] to fulfill the prompt goal as a series of function calls (non "chat" functions are usually quick and can be used many times).
 2. The outcome of each step (aka. function) can be saved into a context variable (defined by the "output" field of the step), these variables can be used in argument values for subsequent steps.
 3. Before using any function in a plan, check that it is present in the [AVAILABLE FUNCTIONS] list. If it is not, do not use it. Do not invent functions that don't exist. Do not use arguments that are not in the function's argument list.
-5. Always output a valid JSON for each [Step] in the plan. Do not return markdown, return a raw and valid JSON.
+5. Always output a valid JSON for each [Step] in the plan. Do not return markdown, return a raw and valid JSON only.
 6. If the user prompt cannot be fulfilled using the [AVAILABLE FUNCTIONS], return the string "UNABLE".
+7. If you want to iteratively build a plan, then at the point where the next steps are dependent on the outcome of the previous step(s), then use a step with the function name 're-evaluate-plan' and no arguments.
 
 A plan takes the form of a series of steps, where each step is a valid JSON string of the step, with each step separated by a newline, and after the last step a '##END##'.
 Eg. Here is what a plan looks like: 
@@ -54,14 +62,23 @@ Eg. Here is what a plan looks like:
 
 Note, the '##END##' after the last step in the plan is required, please always add '##END##' on a new line after the last step the plan.
 
+Here is another example of a plan, this time an interim plan that uses the 're-evaluate-plan' function:
+
+{{ "step": "Step 1: REASON FOR TAKING STEP", "function": "Function_Name", "args": {{ "arg1": "value1", "arg2": "value2", ... }}, "output": "$CONTEXT_VARIABLE_NAME" }}
+{{ "step": "Step 2: REASON FOR TAKING STEP", "condition": "len($CONTEXT_VARIABLE_NAME) > 0", "function": "Function_Name", "args": {{ "arg1": "$CONTEXT_VARIABLE_NAME", "arg2": 123, ... }} }}
+{{ "step": "Step 3: Determine next steps", "function": "re-evaluate-plan" }}
+
+In the above example, at Step 3, the plan will be re-evaluated and new steps added based on the result of steps 1 and 2.
+This is a great mechanism you can use to build a plan iteratively, where you can re-evaluate the plan after a few steps to determine the next steps to take.
+
 Following describes the structure of a plan step:
 * "step" - A short and succinct string that describing the reason for taking the step.
 * "condition" - An optional field that describes the conditions under which this step should be executed - if the condition is not met, the step will be skipped. The condition is a string that is a comparison between two values, where the comparison is one of the following: '==', '!=', '>', '<', '>=', '<=' (see below for details on setting comparison values).
-* "function" - The name of the function to call, aka The function that will perform the operation of this step - it must exactly match one of the [AVAILABLE FUNCTIONS] above (do not try and use a function not listed above).
+* "function" - The name of the function to call, aka The function that will perform the operation of this step - it must exactly match one of the [AVAILABLE FUNCTIONS] above or one of the special functions. (do not try and use a function not listed above).
 * "args" - A dictionary of arguments to pass to the function. The keys are the parameter names of the function and the values are the values to pass to the function. The values can be strings, numbers, context variables (a string prefixed with a '$') or a combination of string and context variables (where context variabels are wrapped with squiggly brackets - eg. ${{VARIABLE_NAME}}). You can also retrieve an element from a context variable that is a list by using the index of the element in square brackets (eg. $list_name[0]), or an attribute of a context variable using the dot notation (eg. $context_variable_name.attribute_name).
 * "output" - The name of the context variable to save the output of the function to. This is optional and only required if the output of the function is needed for a future step in the plan.
 
-Important: The last step in the plan MUST always be the 'generate_final_response' function.
+Important: The last step in the final plan MUST always be the 'generate_final_response' function (Except if you're generating an interim plan, in which case the 're-evaluate-plan' step can be used as the last step, as the final plan is not determined yet).
 
 The last step must be a call to a special function (not listed in the function list above) called 'generate_final_response', and it should be called with the following arguments:
 * original_prompt - The original prompt from the the user
@@ -119,6 +136,29 @@ NB: Take note that the example messages above are listed from newest to oldest a
 [END_RECENT_CONVERSATION]
 
 Please provide a plan to fulfill the user prompt, do not add any commentary, do not use markdown or any other formatting, only return the JSON steps as described.
+"""
+
+RE_EVALUATE_STEP_PLAN_PROMPT_TEMPLATE = """As requested, we're re-evaluating the plan given the current information retrieved so far in the plan.
+{preamble}
+Please provide an updated plan (only the steps needed to proceed from this point onwards) to fulfill the user prompt, do not add any commentary, do not use markdown or any other formatting, only return the JSON steps as described in the previous user prompt.
+
+Here's the steps that have been executed so far:
+
+[BEGIN STEPS EXECUTED]
+
+{steps_executed}
+
+[END STEPS EXECUTED]
+
+And, here's the context variables that have been gathered so far: 
+
+[BEGIN CONTEXT VARIABLES]
+
+{context_variables}
+
+[END CONTEXT VARIABLES]
+
+If a context variable's data has been cut off in the above list, you can retrieve the full value of the variable by using the function 'get_dict_val' with the variable name as the argument (eg. 'get_dict_val({{"key":"variable_name"}})').
 """
 
 GENERATE_FINAL_RESPONSE_TEMPLATE = """You are responding to a prompt from a user and your role is to write a nice friendly, conversational response to their prompt in markdown format.
@@ -266,89 +306,9 @@ class StepPlanOrchestrator(AbstractProxy):
         context.push_stream_update("Planning out how to respond...", PROGRESS_UPDATE_MESSAGE)
         if working_notifier is not None: working_notifier()
         plan_result = self._proxy.send_message(prompt, planner_ctx, self._planner_model, use_functions=False)
-        plan_str = plan_result.message
-        plan_arr = plan_str.split("\n")
-        steps = []
-        for step_str in plan_arr:
-            if step_str.strip() == "##END##":
-                break
-            step_str = step_str.strip()
-            if step_str.endswith(','):
-                step_str = step_str[:-1]
-            
-            if not step_str.startswith("{") and not step_str.endswith("}"):
-                logging.warn("Invalid step in the plan - skipping: {step_str}")
-                continue
 
-            step = json.loads(step_str.strip())
-            steps.append(step)
-        
-        if steps[-1].get('function') != 'generate_final_response':
-            logging.warn("The last step in the plan didn't contain the 'generate_final_response' step - adding a generic version of it")
-            steps.append({
-                "step": "Generate Final Response",
-                "function": "generate_final_response",
-                "args": {
-                    "original_prompt": message,
-                    "intent": "unknown",
-                    "data": [ x.get('output') for x in steps if x.get('output') ]
-                }
-            })
-
-        ## Execute the plan
-        context_map = {}
-        step_results = []
-        for step in steps:
-            if working_notifier is not None: working_notifier()
-            func_name = step.get('function').strip()
-            func_args = step.get('args') or {}
-            output_var = step.get('output')
-            condition = step.get('condition')
-
-            context.push_stream_update("Executing step: " + step.get('step'), "step")
-            if output_var is not None and output_var.startswith("$"):
-                output_var = output_var[1:]
-
-            if condition is not None:
-                ## Evaluate the condition
-                condition_result = self.evaluate_step_condition(context, condition, context_map, step_results, steps)
-                if not condition_result:
-                    step['executed'] = False
-                    continue
-
-            if not func_name:
-                raise ValueError("Function name not provided in the step")
-
-            if func_name == 'generate_final_response':
-                result = self.generate_final_response(message, 
-                                                      data=func_args.get('data'),
-                                                      intent=func_args.get('intent'), 
-                                                      hint=func_args.get('hint'),
-                                                      vars=context_map,
-                                                      steps=steps,
-                                                      context=context)
-            else: 
-                if func_name not in self._function_list and func_name != 'generate_final_response':
-                    raise ValueError(f"Function {func_name} not in the list of available functions")
-
-                func_def = GLOBAL_FUNCTIONS_REGISTRY[func_name]
-                if not func_def:
-                    raise ValueError(f"Function {func_name} not found in the global functions registry")
-
-                ## Replace any context variables in the arguments
-                args = {}
-                for arg_name, arg_val in func_args.items():
-                    if arg_name in func_def.ai_args:
-                        self._parse_value_directives(context, context_map, args, arg_name, arg_val)
-                
-
-                ## Execute the function
-                result = invoke_registered_function(func_name, args, context, cast_result_to_string=False, sys_objects={ 'vars': context_map,'steps':steps })
-            
-            if output_var:
-                context_map[output_var] = result
-            step['executed'] = True
-            step_results.append(result)
+        ## Run the Step Plan to completion
+        steps, step_results = self.evaluate_step_plan(message, context, working_notifier, planner_ctx, plan_result)
         
         ## Setup the result of the plan
         context.push_stream_update("Cleaning up after responding...", PROGRESS_UPDATE_MESSAGE)
@@ -384,6 +344,145 @@ class StepPlanOrchestrator(AbstractProxy):
         context.add_response_to_history(plan_result)
         context.save_history()
         return plan_result
+
+    def evaluate_step_plan(self, original_prompt:str, prompt_context:ChatContext, working_notifier:Callable[[], None], planner_ctx:ChatContext, plan_result:ChatResponse):
+        ## Validate the steps in the plan
+        steps = self.validate_step_plan(original_prompt, plan_result)
+
+        ## Execute the plan
+        context_map = {}
+        step_results = []
+        executed_steps = self.execute_steps(original_prompt, prompt_context, working_notifier, planner_ctx, steps, context_map, step_results)
+        return executed_steps,step_results
+
+    def validate_step_plan(self, original_prompt:str, plan_result:ChatResponse) -> list:
+        plan_str = plan_result.message
+        plan_arr = plan_str.split("\n")
+        steps = []
+        for step_str in plan_arr:
+            if step_str.strip() == "##END##":
+                break
+            step_str = step_str.strip()
+            if step_str.endswith(','):
+                step_str = step_str[:-1]
+            
+            if not step_str.startswith("{") and not step_str.endswith("}"):
+                logging.warn(f"Invalid step in the plan - skipping: {step_str}")
+                continue
+            
+            try:
+                step = json.loads(step_str.strip())
+            except Exception as ex:
+                logging.error(f"Failed to parse a step in the plan - will skip it. Step: {step_str}")   # TODO: What should we do here? If we skip it, then the plan might be invalid :[
+                continue
+            steps.append(step)
+        
+        last_step = steps[-1]
+        if last_step.get('function') not in ['generate_final_response', 're-evaluate-plan']:
+            logging.warn("The last step in the plan didn't contain ether the 'generate_final_response' or 're-evaluate-plan' step - adding a generic 'generate_final_response' step to the plan")
+            steps.append({
+                "step": "Generate Final Response",
+                "function": "generate_final_response",
+                "args": {
+                    "original_prompt": original_prompt,
+                    "intent": "unknown",
+                    "data": [ x.get('output') for x in steps if x.get('output') ]
+                }
+            })
+            
+        return steps
+
+    def execute_steps(self, original_prompt:str, prompt_context:ChatContext, working_notifier:Callable[[], None], planner_ctx:ChatContext, steps:list, context_map:dict, step_results:list, iterator_count:int = 0) -> list:
+        for step in steps:
+            if step.get('executed', False): # Skip steps that have already been executed
+                continue    
+
+            if working_notifier is not None: working_notifier()
+            func_name = step.get('function').strip()
+            func_args = step.get('args') or {}
+            output_var = step.get('output')
+            condition = step.get('condition')
+
+            prompt_context.push_stream_update("Executing step: " + step.get('step'), "step")
+            if output_var is not None and output_var.startswith("$"):
+                output_var = output_var[1:]
+
+            if condition is not None:
+                ## Evaluate the condition
+                condition_result = self.evaluate_step_condition(prompt_context, condition, context_map, step_results, steps)
+                if not condition_result:
+                    step['executed'] = False
+                    continue
+
+            if not func_name:
+                raise ValueError("Function name not provided in the step")
+
+            if func_name == 'generate_final_response':
+                result = self.generate_final_response(original_prompt, 
+                                                      data=func_args.get('data'),
+                                                      intent=func_args.get('intent'), 
+                                                      hint=func_args.get('hint'),
+                                                      vars=context_map,
+                                                      steps=steps,
+                                                      context=prompt_context)
+            elif func_name == 're-evaluate-plan':
+                ## Send a message to the planner to re-evaluate the plan given the current state of the context + plan
+                steps_executed_str = ""
+                executed_steps = [ x for x in steps if x.get('executed', False) ]
+                for step in executed_steps: 
+                    step_desc = step.get('step') or "<unnamed>"
+                    step_func = step.get('function') or "<no function>"
+                    step_context_var = step.get('output') or "<no output>"
+                    steps_executed_str += f"- Step: {step_desc}, function: {step_func}, Output Variable: {step_context_var}\n"
+            
+                context_vars_str = ""
+                for var_name, var_val in context_map.items():
+                    var_val_str = str(var_val)
+                    if type(var_val) is dict or type(var_val) is list:
+                        var_val_str = json.dumps(var_val, indent=2)
+                    if len(var_val_str) > 1000:
+                        var_val_str = var_val_str[:1000] + "...truncated..."
+                    context_vars_str += f"- {var_name}: {var_val_str}\n"
+
+                ## Add a preamble to the prompt if we've gone over the max number of iterations
+                preamble = "\nTHIS IS THE FINAL TIME YOU CAN RE-EVALUATE THE PLAN - PLEASE GENERATE A FINAL PLAN!\n" if iterator_count > self._config.get("max-plan-iterations", 15) else ""
+
+                prompt = RE_EVALUATE_STEP_PLAN_PROMPT_TEMPLATE.format(
+                    steps_executed=steps_executed_str,
+                    context_variables=context_vars_str, 
+                    preamble=preamble
+                )
+
+                function_filter = lambda x,y: x in ['get_dict_val', 'filter_list', 'get_obj_field', 'random_choice', 'merge_lists', 'calculate']
+                updated_plan_result = self._proxy.send_message(prompt, planner_ctx, self._planner_model, use_functions=True, function_filter=function_filter)
+                new_steps = self.validate_step_plan(original_prompt, updated_plan_result)
+                full_step_list = executed_steps + new_steps
+                return self.execute_steps(original_prompt, prompt_context, working_notifier, planner_ctx, full_step_list, context_map, step_results, iterator_count+1)
+                ## Note: We are recursively calling the execute_steps function here, this limits the number of times we can go back to the planner to re-evaluate the plan to the number of times the function is called before the stack overflows - but for now it's easier to do it this way ;p
+            else: 
+                if func_name not in self._function_list and func_name != 'generate_final_response':
+                    raise ValueError(f"Function {func_name} not in the list of available functions")
+
+                func_def = GLOBAL_FUNCTIONS_REGISTRY[func_name]
+                if not func_def:
+                    raise ValueError(f"Function {func_name} not found in the global functions registry")
+
+                ## Replace any context variables in the arguments
+                args = {}
+                for arg_name, arg_val in func_args.items():
+                    if arg_name in func_def.ai_args:
+                        self._parse_value_directives(prompt_context, context_map, args, arg_name, arg_val)
+                
+
+                ## Execute the function
+                result = invoke_registered_function(func_name, args, prompt_context, cast_result_to_string=False, sys_objects={ 'vars': context_map,'steps':steps })
+            
+            if output_var:
+                context_map[output_var] = result
+            step['executed'] = True
+            step_results.append(result)
+
+        return [ x for x in steps if x.get('executed', False) ]
 
     def _parse_value_directives(self, context:ChatContext, variables:dict, args:dict, key:str, value:any):
         """
@@ -427,7 +526,14 @@ class StepPlanOrchestrator(AbstractProxy):
 
                     ## As we're working with substrings, we need to convert the value to a string to be able to do the substitution into the string
                     if type(var_value) is list: 
-                        var_value = ",".join(var_value)
+                        var_str = ""
+                        for item in var_value:
+                            if len(var_str) > 0: var_str += ","
+                            if type(item) in [ dict, list ]: 
+                                var_str += json.dumps(item)
+                            else:
+                                var_str += str(item)
+                        var_value = var_str
                     elif type(var_value) is dict: 
                         var_value = json.dumps(var_value)
                     else: 
@@ -503,7 +609,7 @@ class StepPlanOrchestrator(AbstractProxy):
         elif operator == '<=':
             return float(lhs_val) <= float(rhs_val)
         else:
-            raise ValueError(f"Invalid operator in condition: {operator}")
+            raise ValueError(f"Invalid operator in condition: {operator} [Condition: {condition}]")
 
     def parse_condition_arg(self, context:ChatContext, context_map, steps, val):
         if val.startswith("$"):
@@ -523,7 +629,10 @@ class StepPlanOrchestrator(AbstractProxy):
                 args.append(arg)
 
             if func_name == 'count' or func_name == 'length' or func_name == 'len':
-                val = len(args[0])
+                if args[0] is None:
+                    val = 0
+                else:
+                    val = len(args[0])
             elif func_name == 'exists':
                 val = args[0] is not None and len(args[0]) > 0
             else:
