@@ -10,11 +10,14 @@ def calculate(
     Calculates a mathematical expression
     """
 
+    if expression is None or len(expression) == 0:
+        return None
+    
     if '$' in expression and vars is not None:
         for k,v in vars.items():
             if f"${k}" in expression:
                 expression = expression.replace(f"${k}", str(v))
-    
+
     return evaluator.eval(expression)
 
 def register_functions():

@@ -401,6 +401,7 @@ class StepPlanOrchestrator(AbstractProxy):
                 continue    
             
             step_progression_error_comment = "Failed whilst initialising step"
+            prompt_context.push_stream_update("Starting " + step.get('step'), "progress")
             try:
                 if working_notifier is not None: working_notifier()
                 func_name = step.get('function').strip()
@@ -449,7 +450,7 @@ class StepPlanOrchestrator(AbstractProxy):
                         preamble=preamble
                     )
 
-                    function_filter = lambda x,y: x in ['get_dict_val', 'filter_list', 'get_obj_field', 'random_choice', 'merge_lists', 'calculate']
+                    function_filter = lambda x,y: x in ['get_dict_val', 'filter_list', 'get_obj_field', 'random_choice', 'merge_lists', 'calculate-maths-expression']
                     updated_plan_result = self._proxy.send_message(prompt, planner_ctx, self._planner_model, use_functions=True, function_filter=function_filter)
                     new_steps = self.validate_step_plan(original_prompt, updated_plan_result)
                     full_step_list = executed_steps + new_steps
@@ -519,7 +520,7 @@ class StepPlanOrchestrator(AbstractProxy):
                         preamble=preamble
                     )
 
-                    function_filter = lambda x,y: x in ['get_dict_val', 'filter_list', 'get_obj_field', 'random_choice', 'merge_lists', 'calculate']
+                    function_filter = lambda x,y: x in ['get_dict_val', 'filter_list', 'get_obj_field', 'random_choice', 'merge_lists', 'calculate-maths-expression']
                     updated_plan_result = self._proxy.send_message(prompt, planner_ctx, self._planner_model, use_functions=True, function_filter=function_filter)
                     new_steps = self.validate_step_plan(original_prompt, updated_plan_result)
                     full_step_list = executed_steps + new_steps
@@ -788,7 +789,7 @@ class StepPlanOrchestrator(AbstractProxy):
             return args
         resp_context.function_args_preprocessor = args_preprocessor
 
-        result = self._proxy.send_message(prompt, resp_context, self._responder_model, use_functions=True, function_filter=lambda x,y: x in ['get_dict_val', 'filter_list', 'get_obj_field', 'random_choice', 'merge_lists', 'calculate'], use_completions_data_source_extensions=False)
+        result = self._proxy.send_message(prompt, resp_context, self._responder_model, use_functions=True, function_filter=lambda x,y: x in ['get_dict_val', 'filter_list', 'get_obj_field', 'random_choice', 'merge_lists', 'calculate-maths-expression'], use_completions_data_source_extensions=False)
 
         if result.filtered:
             return f"Sorry, I can't respond to that."
