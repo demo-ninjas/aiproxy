@@ -6,7 +6,7 @@ from ..proxy import AbstractProxy
 from aiproxy.data import ChatConfig, ChatContext, ChatResponse
 from aiproxy.functions import GLOBAL_FUNCTIONS_REGISTRY, FunctionDef
 from aiproxy.proxy import GLOBAL_PROXIES_REGISTRY, CompletionsProxy
-from aiproxy.utils.func import invoke_registered_function
+from aiproxy.utils.func import invoke_registered_function, FAILED_INVOKE_RESPONSE
 from aiproxy.streaming import PROGRESS_UPDATE_MESSAGE
 
 STEP_PLAN_PROMPT_TEMPLATE = """Your role is to build a step by step plan to fulfill the goal of the user prompt.
@@ -484,7 +484,9 @@ class StepPlanOrchestrator(AbstractProxy):
                         ## Execute the function
                         step_progression_state = "Failed when executing the step's function - consider the error message for more information about why it failed"
                         result = invoke_registered_function(func_name, args, prompt_context, cast_result_to_string=False, sys_objects={ 'vars': context_map,'steps':steps })
-                
+                        if type(result) is str and result.startswith(FAILED_INVOKE_RESPONSE):
+                            raise ValueError(f"Failed to execute function: {func_name} - with error: {result}")
+
                 if output_var:
                     context_map[output_var] = result
                 step['executed'] = True
@@ -707,6 +709,9 @@ class StepPlanOrchestrator(AbstractProxy):
                 for arg_name, arg_val in json.loads(args_str).items():
                     self._parse_value_directives(context, context_map, f_args, arg_name, arg_val)
                 val = invoke_registered_function(func_name, f_args, context_map, cast_result_to_string=False, sys_objects={ 'vars': context_map,'steps':steps })
+                if type(val) is str and val.startswith(FAILED_INVOKE_RESPONSE):
+                    raise ValueError(f"Failed to execute function: {func_name} - with error: {val}")
+
         return val
 
     def generate_final_response(

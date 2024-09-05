@@ -5,7 +5,7 @@ import logging
 from aiproxy import ChatContext
 from aiproxy.functions import GLOBAL_FUNCTIONS_REGISTRY
 
-FAILED_INVOKE_RESPONSE = "Failed"
+FAILED_INVOKE_RESPONSE = "[Failed]"
 
 def invoke_registered_function(function_name:str, function_args:str|dict, context:ChatContext = None, cast_result_to_string:bool = True,  arg_preprocessor:Callable[[dict[str,any]], dict[str,any]] = None, predefined_args:dict[str,any] = None, sys_objects:dict[str,any] = None) -> any:
     try:
@@ -85,4 +85,4 @@ def invoke_registered_function(function_name:str, function_args:str|dict, contex
         import traceback
         logging.warning(f"Failed to invoke function '{function_name}' with Error: {e}")
         traceback.print_exception(e)
-        return FAILED_INVOKE_RESPONSE
+        return f"{FAILED_INVOKE_RESPONSE} {str(e)}"
