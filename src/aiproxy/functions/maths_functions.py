@@ -18,12 +18,6 @@ def calculate(
             if f"${k}" in expression:
                 expression = expression.replace(f"${k}", str(v))
 
-    if 'NoneType' in expression:
-        expression = expression.replace('NoneType', '0')
-    if 'None' in expression:
-        expression = expression.replace('None', '0')
-    if 'nan' in expression:
-        expression = expression.replace('nan', '0')
     
     if expression.startswith('='):
         expression = expression[1:]
