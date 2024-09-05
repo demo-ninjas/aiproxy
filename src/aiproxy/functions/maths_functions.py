@@ -12,4 +12,4 @@ def calculate(
 
 def register_functions():
     from .function_registry import GLOBAL_FUNCTIONS_REGISTRY
-    GLOBAL_FUNCTIONS_REGISTRY.register_base_function("calculate", "Calculates a mathematical expression, returning the result. This function only calculates maths expressions, do not pass python syntax to this or attempt to use it like the Python eval function - it is a maths calculator. Eg. '(16.1 x 12) / 3.14 + 6^3'", calculate)
+    GLOBAL_FUNCTIONS_REGISTRY.register_base_function("calculate-maths-expression", "Calculates a mathematical expression, returning the result. This calculates maths expressions, do not pass python syntax to this or attempt to use it like the Python eval function - it is a maths calculator. Eg. '(16.1 x 12) / 3.14 + 6^3'", calculate)

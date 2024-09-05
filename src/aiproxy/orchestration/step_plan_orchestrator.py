@@ -492,10 +492,10 @@ class StepPlanOrchestrator(AbstractProxy):
             except Exception as ex:
                 step['executed'] = False
                 if iterator_count > self._config.get("max-plan-iterations", 15):
-                    logging.error(f"Failed to execute step: {step.get('step')} - with error: {str(ex)} - will not re-evaluate the plan")
+                    logging.error(f"Failed to execute step: {step.get('step')} - with reason: {step_progression_state}. Error was: {str(ex)} - will not re-evaluate the plan")
                     raise ex
                 else: 
-                    logging.error(f"Failed to execute step: {step.get('step')} - with error: {str(ex)} - will ask the planner to re-think its plan")
+                    logging.error(f"Failed to execute step: {step.get('step')} - with reason: {step_progression_state}. Error was: {str(ex)} - will ask the planner to re-think its plan")
                     step, steps_executed_str, executed_steps = self.generate_steps_executed_string(steps)
                     context_vars_str = self.generate_context_vars_string(context_map)
 

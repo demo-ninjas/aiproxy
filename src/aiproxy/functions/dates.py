@@ -23,9 +23,15 @@ def dayname_for_date(
     """
     return datetime.datetime.strptime(date, "%Y-%m-%d").strftime("%A")
 
+def now() -> str:
+    """
+    Returns the current date and time
+    """
+    return datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
 def register_functions():
     from .function_registry import GLOBAL_FUNCTIONS_REGISTRY
     GLOBAL_FUNCTIONS_REGISTRY.register_base_function("today", "Returns todays date in ISO date format (YYYY-MM-DD)", today)
     GLOBAL_FUNCTIONS_REGISTRY.register_base_function("date_in_days", "Returns the date for a number of days from today in ISO date format (YYYY-MM-DD)", date_in_days)
     GLOBAL_FUNCTIONS_REGISTRY.register_base_function("dayname_for_date", "Return the day of the week (eg. Monday) for the provided date. The date provided shold be in ISO date format (YYYY-MM-DD)", dayname_for_date)
+    GLOBAL_FUNCTIONS_REGISTRY.register_base_function("now", "Returns the current date and time in the following format (YYYY-MM-DD HH:MM:SS)", now)
