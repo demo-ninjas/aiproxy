@@ -4,10 +4,17 @@ from aiproxy.utils.simple_eval import SimpleEval
 evaluator = SimpleEval(operators=None, functions=None, names=None)
 
 def calculate(
-        expression:Annotated[str, "The mathematical expression to calculate"]) -> any:
+        expression:Annotated[str, "The mathematical expression to calculate"],
+        vars:dict = None) -> any:
     """
     Calculates a mathematical expression
     """
+
+    if '$' in expression and vars is not None:
+        for k,v in vars.items():
+            if f"${k}" in expression:
+                expression = expression.replace(f"${k}", str(v))
+    
     return evaluator.eval(expression)
 
 def register_functions():
