@@ -497,6 +497,8 @@ class StepPlanOrchestrator(AbstractProxy):
                     logging.error(f"Failed to execute step: {step.get('step')} - with reason: {step_progression_state}. Error was: {str(ex)} - will not re-evaluate the plan")
                     raise ex
                 else: 
+                    prompt_context.push_stream_update("Had an issue in a step - will re-evaluate the Plan...", "progress")
+                    prompt_context.push_stream_update("...Re-evaluating Plan... [Had some issues with: " + step.get('step') + "]", "step")
                     logging.error(f"Failed to execute step: {step.get('step')} - with reason: {step_progression_state}. Error was: {str(ex)} - will ask the planner to re-think its plan")
                     step, steps_executed_str, executed_steps = self.generate_steps_executed_string(steps)
                     context_vars_str = self.generate_context_vars_string(context_map)
