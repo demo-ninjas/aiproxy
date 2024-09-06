@@ -245,10 +245,12 @@ class StepPlanOrchestrator(AbstractProxy):
         self._functions = self._build_available_functions()
         self._planner_model = self._config['planner-model'] or self._config['model'] or None
         self._responder_model = self._config['responder-model'] or self._config['model'] or None
-        self._proxy = GLOBAL_PROXIES_REGISTRY.load_proxy(self._config['proxy'], CompletionsProxy)
+        self._proxy = GLOBAL_PROXIES_REGISTRY.load_proxy(self._config['planner-proxy'], CompletionsProxy)
+        self._proxy._config.user_prompt_is_template = self._config.get('planner-prompt-as-template', True)  # Allow the user prompt to be a template for the planner (unless configured to not be)
         self._include_step_names_in_result = self._config.get('include-step-names-in-result', True)
         self._include_step_args_in_result = self._config.get('include-step-args-in-result', True)
         self._final_response_template = self._config.get('final-response-template', GENERATE_FINAL_RESPONSE_TEMPLATE)
+        
 
 
     def set_function_list(self, function_list:list[str]):
