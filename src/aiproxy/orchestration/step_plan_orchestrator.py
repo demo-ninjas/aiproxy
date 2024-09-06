@@ -235,6 +235,8 @@ The recent messages in the conversation are provided below, ordered from most re
 """
 
 class StepPlanOrchestrator(AbstractProxy):
+    _proxy:CompletionsProxy = None
+
     def __init__(self, config:ChatConfig):
         super().__init__(config)
         self._preamble = self._config['planner-preamble'] or ''
@@ -246,7 +248,6 @@ class StepPlanOrchestrator(AbstractProxy):
         self._planner_model = self._config['planner-model'] or self._config['model'] or None
         self._responder_model = self._config['responder-model'] or self._config['model'] or None
         self._proxy = GLOBAL_PROXIES_REGISTRY.load_proxy(self._config['planner-proxy'], CompletionsProxy)
-        self._proxy._config.user_prompt_is_template = self._config.get('planner-prompt-as-template', True)  # Allow the user prompt to be a template for the planner (unless configured to not be)
         self._include_step_names_in_result = self._config.get('include-step-names-in-result', True)
         self._include_step_args_in_result = self._config.get('include-step-args-in-result', True)
         self._final_response_template = self._config.get('final-response-template', GENERATE_FINAL_RESPONSE_TEMPLATE)
@@ -302,8 +303,10 @@ class StepPlanOrchestrator(AbstractProxy):
         planner_ctx = context.clone_for_single_shot()
         recent_conversation = self._build_recent_conversation(context)
 
+        ## Parse the Preamble as a Prompt Template
+        preamble_to_use = self._proxy._parse_prompt_template(self._preamble, context) if self._preamble else ''
         prompt = STEP_PLAN_PROMPT_TEMPLATE.format(
-            preamble=self._preamble,
+            preamble=preamble_to_use,
             rules=self._rules,
             available_functions=self._functions,
             user_prompt=message,
@@ -446,7 +449,6 @@ class StepPlanOrchestrator(AbstractProxy):
 
                     ## Add a preamble to the prompt if we've gone over the max number of iterations
                     preamble = "\nTHIS IS THE FINAL TIME YOU CAN RE-EVALUATE THE PLAN - PLEASE GENERATE A FINAL PLAN!\n" if iterator_count > self._config.get("max-plan-iterations", 15) else ""
-
                     prompt = RE_EVALUATE_STEP_PLAN_PROMPT_TEMPLATE.format(
                         steps_executed=steps_executed_str,
                         context_variables=context_vars_str, 
@@ -760,8 +762,9 @@ class StepPlanOrchestrator(AbstractProxy):
                         var_str = var_str[:1000] + "...truncated [use 'get_dict_val({ \"key\":\"" + output_var + "\")' to retrieve whole value]..."
                     step_outcomes += f"\nStep: {step.get('name')} [Variable: {output_var}]\n{var_str}\n"
 
+        preamble_to_use = self._proxy._parse_prompt_template(self._responder_preamble, context) if self._responder_preamble else ''
         prompt = self._final_response_template.format(
-            preamble=self._responder_preamble or '',
+            preamble=preamble_to_use or '',
             user_prompt=original_prompt,
             intent=intent or 'Not Provided',
             hint=hint or 'Not Provided',
