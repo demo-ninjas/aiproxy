@@ -454,6 +454,7 @@ class StepPlanOrchestrator(AbstractProxy):
                     function_filter = lambda x,y: x in ['get_dict_val', 'filter_list', 'get_obj_field', 'random_choice', 'merge_lists', 'calculate-maths-expression']
                     updated_plan_result = self._proxy.send_message(prompt, planner_ctx, self._planner_model, use_functions=True, function_filter=function_filter)
                     new_steps = self.validate_step_plan(original_prompt, updated_plan_result)
+                    executed_steps = [ x for x in steps if x.get('executed', False) ]
                     full_step_list = executed_steps + new_steps
                     return self.execute_steps(original_prompt, prompt_context, working_notifier, planner_ctx, full_step_list, context_map, step_results, iterator_count+1)
                     ## Note: We are recursively calling the execute_steps function here, this limits the number of times we can go back to the planner to re-evaluate the plan to the number of times the function is called before the stack overflows - but for now it's easier to do it this way ;p
@@ -524,10 +525,9 @@ class StepPlanOrchestrator(AbstractProxy):
                     function_filter = lambda x,y: x in ['get_dict_val', 'filter_list', 'get_obj_field', 'random_choice', 'merge_lists', 'calculate-maths-expression']
                     updated_plan_result = self._proxy.send_message(prompt, planner_ctx, self._planner_model, use_functions=True, function_filter=function_filter)
                     new_steps = self.validate_step_plan(original_prompt, updated_plan_result)
+                    executed_steps = [ x for x in steps if x.get('executed', False) ]
                     full_step_list = executed_steps + new_steps
                     return self.execute_steps(original_prompt, prompt_context, working_notifier, planner_ctx, full_step_list, context_map, step_results, iterator_count+2) ## Error retry is worth 2 iterations ;p
-
-
 
         return [ x for x in steps if x.get('executed', False) ]
 
