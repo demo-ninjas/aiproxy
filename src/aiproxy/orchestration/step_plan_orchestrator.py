@@ -366,6 +366,7 @@ class StepPlanOrchestrator(AbstractProxy):
 
     def validate_step_plan(self, original_prompt:str, plan_result:ChatResponse) -> list:
         plan_str = plan_result.message
+        if type(plan_str) is list: plan_str = "\n".join(plan_str)
         plan_arr = plan_str.split("\n")
         steps = []
         for step_str in plan_arr:
@@ -696,6 +697,9 @@ class StepPlanOrchestrator(AbstractProxy):
             if args_str.startswith("$"):
                 args_str = context_map.get(args_str[1:])
 
+            if type(args_str) is list: 
+                args_str = ",".join(args_str)
+                
             args = []
             for arg in args_str.split(','):
                 arg = arg.strip()
