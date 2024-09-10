@@ -39,7 +39,7 @@ class ProxyRegistry:
                 if config is not None: 
                     name_or_config = config
 
-        if name_or_config is not None:
+        if name_or_config is not None and type(name_or_config) is ChatConfig:
             proxy = self.get_proxy(name_or_config.name)
         if proxy is None:
             proxy = proxy_type(name_or_config, **kwargs)
