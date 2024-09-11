@@ -136,6 +136,7 @@ def _inner_object_update(obj:any, field:str, value:any = None) -> any:
     if value is None and (field is None or field == ''): 
         return obj
     
+    if field.startswith('.'): field = field[1:]
     fields = field.split('.')
     for field_name, i in zip(fields, range(len(fields))):
         is_last_field = i == len(fields) - 1
