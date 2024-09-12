@@ -98,6 +98,14 @@ def get_all_items(
         enable_cross_partition_query=True
     ))
 
+def get_items_by_query(
+        query:Annotated[str, "The SQL query to execute to retrieve the items"], 
+        source:Annotated[str, "The name of the configuration to use for connecting to the Cosmos DB. When not specified, the root config will be used"] = None
+        ):
+    client = connect_to_cosmos_container(source)
+    return list(client.query_items(query=query, enable_cross_partition_query=True))
+
+
 def upsert_item(
         item:Annotated[dict, "The item to insert or update in the Cosmos DB"], 
         ttl:Annotated[int, "The number of seconds that this item should live for before it is automatically deleted by the database"] = None,
