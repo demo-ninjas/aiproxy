@@ -27,12 +27,18 @@ def filter_array(
     matches = []
     non_matches = []
     for item in array:
+        if item is None: 
+            continue
+
         if type(item) is str:
             item = { field: item}
         if type(item) in [int, float]:
             item = { field: str(item)}
         elif type(item) is not dict:
-            item = item.__dict__
+            try:
+                item = item.__dict__
+            except:
+                continue
 
         field_val = item.get(field, None)
         if field_val is None: 
@@ -215,6 +221,10 @@ def obj_to_json(
     Convert an object to a json string
     """
 
+    if obj is None: return "{}"
+    if type(obj) is str:
+        return obj  ## Assume it's already a json string
+    
     ## If object has method .to_dict(), then use it to generate the dictionary
     if hasattr(obj, 'to_api_response'):
         obj = obj.to_api_response()
