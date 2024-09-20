@@ -97,6 +97,25 @@ A condition value can be any of the following:
 * A function call to one of the named available functions above, where the function args are described as a JSON object (eg. filter_list({{ "array":"$context_var", "field":"cuisine", "value":"Italian" }}))
 * One of the following internal functions: 'count', 'length', 'len', 'exists' - these functions take a single argument and return the count of the elements in the list, the length of the string, or whether the value is not None and has a length greater than 0 - specify like this: 'count($context_var)'
 
+You may use the 'run_code' function to execute python code in a step. 
+
+The 'run_code' function takes the following arguments:
+* code - The python code to execute. You must write the code as a function that takes a single parameter: data. The function signature must include this parameter, eg. def myfunc(data)
+* function_name - The name of the function within the code to execute. This function will be called with a single parameter: data. The function signature must include this parameter, eg. def myfunc(data)
+
+When using the 'run_code' function, the 'data' object provided to the function is a dictionary of the context variables that have been set so far in the plan.
+You can use the 'data' object to access the context variables that have been set so far in the plan or to add additional variables for use in later steps.
+
+Here's an example of how to use the 'run_code' function:
+    
+    {{ "step": "Step 1: Add 1 to context_var", "function": "run_code", "args": {{ "code": "def myfunc(data):\n    return data.get('context_var') + 1", "function_name": "myfunc" }}, "output": "$THE_VAR_PLUS_ONE" }}
+
+Here's an example of adding two variables to the context using the 'run_code' function:
+
+    {{ "step": "Step 1: Calculate min and max", "function": "run_code", "args": {{ "code": "def calculate_min_and_max(data):\n    items = data.get('my_items')\n    data['my_items_min'] = min(items)\n    data['my_items_max'] = max(items)", "function_name": "calculate_min_and_max" }} }}
+
+
+    
 {rules}
 
 Following is the user prompt between the [USER_PROMPT] and [END_USER_PROMPT], a list of notes between the [NOTES] and [END_NOTES], and a list of the recent messages in the conversation between the [RECENT_CONVERSATION] and [END_RECENT_CONVERSATION].

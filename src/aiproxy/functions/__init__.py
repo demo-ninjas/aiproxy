@@ -7,9 +7,11 @@ from .string_functions import register_functions as register_string_functions
 from .object_functions import register_functions as register_object_functions
 from .url_functions import register_functions as register_url_functions
 from .dates import register_functions as register_dates_functions
+from .code import register_functions as register_code_functions
 
 def register_all_base_functions():
     register_ai_chat_functions()
+    register_code_functions()
     register_azure_search_functions()
     register_cosmosdb_functions()
     register_maths_functions()
