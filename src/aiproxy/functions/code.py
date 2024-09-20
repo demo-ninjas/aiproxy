@@ -25,13 +25,13 @@ def eval_code(code:Annotated[str, "A python statement to compile and execute - r
     return eval(compiled_code, _build_safe_globals())
     
 def _build_safe_globals() -> dict:
-    from RestrictedPython import safe_globals, safe_builtins, limited_builtins, utility_builtins
+    from RestrictedPython import safe_globals, safe_builtins, utility_builtins
     from RestrictedPython.Guards import full_write_guard
+    from RestrictedPython.Eval import default_guarded_getattr, default_guarded_getitem, default_guarded_getiter
     from RestrictedPython.PrintCollector import PrintCollector
     import statistics
     allowed_globals = {}
     allowed_globals.update(safe_globals.get('__builtins__'))
-    allowed_globals.update(limited_builtins)
     allowed_globals.update(utility_builtins)
     allowed_globals.update(safe_builtins)
     allowed_globals.update({ "statistics": statistics })
@@ -41,10 +41,13 @@ def _build_safe_globals() -> dict:
     allowed_globals.update({ "len": len })
     allowed_globals.update({ "sorted": sorted })
     allowed_globals.update({ "print": PrintCollector })
-    allowed_globals.update({ "dict": full_write_guard(dict)})  ## Allow writing to the dict
-    allowed_globals.update({ "list": full_write_guard(list)})  ## Allow writing to the dict
-    allowed_globals.update({ "_write_": full_write_guard})  ## Allow writing to the dict
-    allowed_globals.update({ "_getattr_ ": full_write_guard})  ## Allow writing to the dict
+    allowed_globals.update({ "dict": full_write_guard(dict)})  ## Allow writing to dict
+    allowed_globals.update({ "list": full_write_guard(list)})  ## Allow writing to list
+    allowed_globals.update({ "_write_": full_write_guard})  
+    allowed_globals.update({ "_getattr_": default_guarded_getattr})
+    allowed_globals.update({ "_getitem_": default_guarded_getitem})
+    allowed_globals.update({ "_getiter_": default_guarded_getiter})
+    
     return { '__builtins__': allowed_globals }
 
 def register_functions():
@@ -53,6 +56,21 @@ def register_functions():
     GLOBAL_FUNCTIONS_REGISTRY.register_base_function("eval_code", "Compiles the provided python statement and executes it, returning the result", eval_code)
 
 
-data = { "my_items": [1, 2, 3, 2, 3, 2, 6, 2, 8, 10] }
-run_code("def calculate_min_and_max(data):\n    items = data.get('my_items')\n    data['my_items_min'] = min(items)\n    data['my_items_max'] = max(items)", "calculate_min_and_max", data)
-print(data)
+# data = {
+#     "PIZZA_RECIPES": [
+#         {
+#             "name": "Margherita",
+#             "ingredients": ["tomato", "mozzarella", "basil"]
+#         },
+#         {
+#             "name": "Pepperoni",
+#             "ingredients": ["tomato", "mozzarella", "pepperoni"]
+#         },
+#         {
+#             "name": "Hawaiian",
+#             "ingredients": ["tomato", "mozzarella", "ham", "pineapple"]
+#         }
+#     ]
+# }
+# x = run_code("def find_recipe_with_most_ingredients(data):\n    recipes = data.get('PIZZA_RECIPES')\n    max_ingredients_recipe = max(recipes, key=lambda recipe: len(recipe['ingredients']))\n    return max_ingredients_recipe", "find_recipe_with_most_ingredients", data)
+# print(x)
