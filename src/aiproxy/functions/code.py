@@ -4,26 +4,95 @@ from RestrictedPython import compile_restricted
 
 def run_code(code:Annotated[str, "The python code to compile and execute. You must write the code as a function that takes a single parameter: data. The function signature must include this parameter, eg. def myfunc(data)"],
                 function_name:Annotated[str, "The name of the function within the code to execute. This function will be called with a single parameter: data. The function signature must include this parameter, eg. def myfunc(data)"] = "myfunc",
+                fix_broken_code:Annotated[bool, "Flag to enable the function to attempt to automatically fix broken code if possible"] = True,
+                max_attempts:Annotated[int, "The maximum number of attempts to try and fix the code before giving up"] = 3,
                 vars:dict[str, any] = None) -> any:
     """
     Execute the provided code and return the result of the specified function
     """
-    # Compile the code
-    compiled_code = compile_restricted(code, "<string>", "exec")
-    # Execute the code
-    loc = {}
-    exec(compiled_code, _build_safe_globals(), loc)
-    return loc[function_name](data=vars)
+    attempts = 0
+    while attempts < max_attempts:
+        try:
+            # Compile the code
+            compiled_code = compile_restricted(code, "<string>", "exec")
+            # Execute the code
+            loc = {}
+            exec(compiled_code, _build_safe_globals(), loc)
+            return loc[function_name](data=vars)
+        except Exception as e:
+            if fix_broken_code:
+                attempts += 1
+                code = _fix_code(code, str(e))
+                if code is None:
+                    return f"#ERROR {str(e)}"
+            else:
+                return f"#ERROR {str(e)}"
 
-def eval_code(code:Annotated[str, "A python statement to compile and execute - returning the result of the statement."]) -> any:
+def eval_code(code:Annotated[str, "A python statement to compile and execute - returning the result of the statement."],
+                fix_broken_code:Annotated[bool, "Flag to enable the function to attempt to automatically fix broken code if possible"] = True,
+                max_attempts:Annotated[int, "The maximum number of attempts to try and fix the code before giving up"] = 3,
+                ) -> any:
     """
     Execute the provided python statement and return the result
     """
-    # Compile the code
-    compiled_code = compile_restricted(code, "<string>", "eval")
-    # Execute the code
-    return eval(compiled_code, _build_safe_globals())
+    attempts = 0
+    while attempts < max_attempts:
+        try:
+            # Compile the code
+            compiled_code = compile_restricted(code, "<string>", "eval")
+            # Execute the code
+            return eval(compiled_code, _build_safe_globals())
+        except Exception as e:
+            if fix_broken_code:
+                attempts += 1
+                code = _fix_code(code, str(e))
+                if code is None:
+                    return f"#ERROR {str(e)}"
+            else:
+                return f"#ERROR {str(e)}"
+
     
+
+def _fix_code(code:str, error:str) -> str:
+    """
+    Attempt to fix the provided code if it is broken
+    """
+    from aiproxy.functions.ai_chat import ai_chat
+    from aiproxy.data import ChatContext
+
+    user_prompt = f"""The provided code is probably broken.
+When attempting to compile the code, the following error was encountered: 
+
+{error}
+
+Here is the code that failed: 
+
+{code}
+
+Please consider the error and then provide the corrected code.
+
+ONLY provide the code, do NOT include any commentaries or explanations, and do not wrap the code in markdown - just provide the (corrected) raw python code.
+"""
+    res = ai_chat(user_prompt, context=ChatContext())
+
+    ## Check if the response is an error
+    if res.startswith("#ERROR"):
+        return None
+    
+    ## Check if the response is filtered
+    if res.startswith("#FILTERED"):
+        return None
+
+    ## Check if the response is wrapped in a markdown code block
+    start_of_code_block = res.find("```")
+    if start_of_code_block > -1:    
+        start_of_code_in_block = res.find("\n", start_of_code_block+3)
+        end_of_code_block = res.rfind("```", start_of_code_block+3)
+        res = res[start_of_code_in_block:end_of_code_block].strip()
+    
+    return res
+    
+
 def _build_safe_globals() -> dict:
     from RestrictedPython import safe_globals, safe_builtins, utility_builtins
     from RestrictedPython.Guards import full_write_guard
@@ -54,23 +123,3 @@ def register_functions():
     from .function_registry import GLOBAL_FUNCTIONS_REGISTRY
     GLOBAL_FUNCTIONS_REGISTRY.register_base_function("run_code", "Compiles the provided python code and executes the specified function, returning the result. The function signature must include a single parameter called 'data', eg. def myfunc(data)", run_code)
     GLOBAL_FUNCTIONS_REGISTRY.register_base_function("eval_code", "Compiles the provided python statement and executes it, returning the result", eval_code)
-
-
-# data = {
-#     "PIZZA_RECIPES": [
-#         {
-#             "name": "Margherita",
-#             "ingredients": ["tomato", "mozzarella", "basil"]
-#         },
-#         {
-#             "name": "Pepperoni",
-#             "ingredients": ["tomato", "mozzarella", "pepperoni"]
-#         },
-#         {
-#             "name": "Hawaiian",
-#             "ingredients": ["tomato", "mozzarella", "ham", "pineapple"]
-#         }
-#     ]
-# }
-# x = run_code("def find_recipe_with_most_ingredients(data):\n    recipes = data.get('PIZZA_RECIPES')\n    max_ingredients_recipe = max(recipes, key=lambda recipe: len(recipe['ingredients']))\n    return max_ingredients_recipe", "find_recipe_with_most_ingredients", data)
-# print(x)
