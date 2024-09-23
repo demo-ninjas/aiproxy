@@ -3,9 +3,11 @@ from aiproxy.utils.config import load_named_config
 from aiproxy.data import ChatConfig
 
 GLOBAL_AGENTS_REGISTRY = {}
+GLOBAL_TYPES_REGISTRY = {}
 
 def agent_factory(config: dict|str|ChatConfig, **kwargs) -> Agent:
     global GLOBAL_AGENTS_REGISTRY
+    global GLOBAL_TYPES_REGISTRY
     name = None
     if type(config) is str:
         tmp_name = config
@@ -35,7 +37,10 @@ def agent_factory(config: dict|str|ChatConfig, **kwargs) -> Agent:
     ## Load the agent based on the agent type as specified in the config
     agent_type = agent_type.lower()
     agent = None
-    if agent_type == "assistant" or agent_type == "assistantagent":
+
+    if agent_type in GLOBAL_TYPES_REGISTRY:
+        agent = GLOBAL_TYPES_REGISTRY[agent_type](name, description, config, **kwargs)
+    elif agent_type == "assistant" or agent_type == "assistantagent":
         from .assistant_agent import AssistantAgent
         agent = AssistantAgent(name, description, config, **kwargs)
     elif agent_type == "completion" or agent_type == "completions" or agent_type == "completionsagent":
@@ -80,3 +85,7 @@ def unregister_agent(agent_name:str):
     global GLOBAL_AGENTS_REGISTRY
     if agent_name in GLOBAL_AGENTS_REGISTRY:
         del GLOBAL_AGENTS_REGISTRY[agent_name]
+
+def register_agent_type(type_name:str, agent_type:type):
+    global GLOBAL_TYPES_REGISTRY
+    GLOBAL_TYPES_REGISTRY[type_name.lower()] = agent_type
