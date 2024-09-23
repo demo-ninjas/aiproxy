@@ -30,12 +30,14 @@ class CompletionsAgent(Agent):
         self._isolated_thread_id = None
     
     def process_message(self, message:str, context:ChatContext) -> ChatResponse:
+        original_context = context
         if self._single_shot:
             context = context.clone_for_single_shot()
         elif self._thread_isolated:
             context = context.clone_for_thread_isolation(self._isolated_thread_id)
 
         # Send message to the proxy
+        context.current_msg_id = original_context.current_msg_id
         response = self.proxy.send_message(message, context, override_model=self._custom_model, override_system_prompt=self._custom_system_message, function_filter=self._function_filter)
         # If the agent is using an isolated thread, store the thread-id for use later 
         if self._thread_isolated:

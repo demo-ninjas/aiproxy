@@ -74,7 +74,7 @@ class RouteToAgentAgent(Agent):
     def reset(self):
         pass
     
-    def process_message(self, message:str, context:ChatContext) -> ChatResponse:
+    def process_message(self, message:str, context:ChatContext, **kwargs) -> ChatResponse:
         selector_prompt = self._selector_prompt_template.format(AGENT_LIST=self._agent_list, USER_PROMPT=message)
         selector_response = self.proxy.send_message(selector_prompt, context.clone_for_single_shot(), override_model=self._custom_model, use_functions=False)
         if selector_response.error or selector_response.filtered: 
@@ -96,6 +96,6 @@ class RouteToAgentAgent(Agent):
                 return response
             else: 
                 logging.debug(f"Selected agent: {selected_agent.name} to answer prompt: {message}")
-                resp = selected_agent.process_message(message, context)
+                resp = selected_agent.process_message(message, context, **kwargs)
                 resp.add_metadata("responder", selected_agent.name)
                 return resp

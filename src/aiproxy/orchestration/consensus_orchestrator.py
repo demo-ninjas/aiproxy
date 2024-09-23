@@ -348,7 +348,9 @@ class ConsensusOrchestrator(AbstractProxy):
             summary_prompt = "The conversation was not completed by the agents, perhaps they ran out of turns? Here's the conversation so far:\n\n" + self.build_agent_responses_str(conversation_so_far) + "\n\nPlease respond to the user and ask them how they would like to proceed."
 
         if working_notifier is not None: working_notifier()
-        summary_resp = self._summariser.process_message(summary_prompt, context.clone_for_single_shot(with_streamer=True))
+        resp_context = context.clone_for_single_shot(with_streamer=True)
+        resp_context.current_msg_id = context.current_msg_id
+        summary_resp = self._summariser.process_message(summary_prompt, resp_context)
         if summary_resp is None:
             return ChatResponse(message="Summariser did not provide a response")
         else:

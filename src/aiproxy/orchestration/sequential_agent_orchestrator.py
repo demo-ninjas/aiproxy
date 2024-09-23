@@ -81,7 +81,10 @@ class SequentialAgentOrchestrator(AbstractProxy):
                 prompt = prev_responses[-1][1].message
 
             ## If this is the last agent, we want to set the with_streamer=True so that the context can push the response to the stream
-            ctx = context.clone_for_single_shot(with_streamer=(idx == len(agents) - 1))
+            is_last_agent = idx == len(agents) - 1
+            ctx = context.clone_for_single_shot(with_streamer=is_last_agent)
+            if is_last_agent:
+                ctx.current_msg_id = context.current_msg_id
             response = agent.process_message(prompt, ctx)
             if response is not None:
                 prev_responses.append((agent, response))

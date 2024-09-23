@@ -23,12 +23,14 @@ class OrchestratorProxyAgent(Agent):
         self._isolated_thread_id = None
         
     def process_message(self, message:str, context:ChatContext) -> ChatResponse:
+        original_context = context
         if self._thread_isolated:
             context = context.clone_for_thread_isolation(self._isolated_thread_id)
         elif self._single_shot:
             context = context.clone_for_single_shot()
 
         # Send message to the Orchestrator
+        context.current_msg_id = original_context.current_msg_id
         response = self._orchestrator.send_message(message, context)
 
         # If the agent is using an isolated thread, store the thread-id for use later 

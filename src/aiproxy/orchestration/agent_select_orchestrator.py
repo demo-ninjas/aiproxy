@@ -44,12 +44,13 @@ class AgentSelectOrchestrator(AbstractProxy):
                      **kwargs) -> ChatResponse:
         ## Fill the selector history with the conversation so far
         selector_context = context.clone_for_single_shot(with_streamer=True)
+        selector_context.current_msg_id = context.current_msg_id
         context.init_history()
         if context.history: 
             for msg in context.history:
                 selector_context.add_prompt_to_history(msg.message, msg.role)
         if working_notifier is not None: working_notifier()
-        result = self._selector.process_message(message, selector_context)
+        result = self._selector.process_message(message, selector_context, working_notifier=working_notifier)
 
         
         context.add_prompt_to_history(message, 'user')

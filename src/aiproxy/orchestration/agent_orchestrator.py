@@ -40,8 +40,9 @@ class AgentOrchestrator(AbstractProxy):
             raise ValueError("No agent specified for the message")
         
         if working_notifier is not None: working_notifier()
-        result = self._agent.process_message(message, context.clone_for_single_shot(with_streamer=True))
+        result = self._agent.process_message(message, context.clone_for_single_shot(with_streamer=True), working_notifier=working_notifier, conversation_history=context.history, **kwargs)
         context.add_prompt_to_history(message, 'user')
         context.add_response_to_history(result)
         context.save_history()
+
         return result

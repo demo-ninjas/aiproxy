@@ -13,7 +13,7 @@ class Agent:
         self.config = config or {}
 
     @abstractmethod
-    def process_message(self, message:str, context:ChatContext) -> ChatResponse:
+    def process_message(self, message:str, context:ChatContext, **kwargs) -> ChatResponse:
         pass
 
     def reset(self):
