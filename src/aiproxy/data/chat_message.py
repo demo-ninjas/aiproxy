@@ -60,14 +60,13 @@ class ChatMessage:
         if self.citations is not None: 
             citations = []
             for citation in self.citations: 
-                if hasattr('to_dict'):
+                if hasattr(citation, 'to_dict'):
                     citations.append(citation.to_dict())
-                elif hasattr('to_api_response'):
+                elif hasattr(citation, 'to_api_response'):
                     citations.append(citation.to_api_response())
                 else: 
                     citations.append(citation)
 
-        citations = [ citation.to_dict() if hasattr('to_dict') else citation for citation in self.citations ] if self.citations is not None else None
         return {
             'message': self.message,
             'role': self.role,
