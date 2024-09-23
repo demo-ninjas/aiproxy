@@ -64,7 +64,7 @@ class ChatMessage:
             'tool_calls': self.tool_calls,
             'tool_name': self.tool_name,
             'tool_call_id': self.tool_call_id,
-            'citations': self.citations,
+            'citations': [ citation.to_api_response() if hasattr('to_api_response') else citation for citation in self.citations ] if self.citations is not None else None,
             'assistant_id': self.assistant_id,
             'run_id': self.run_id,
             'id': self.id,
