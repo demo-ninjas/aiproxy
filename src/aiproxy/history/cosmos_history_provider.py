@@ -31,7 +31,20 @@ class CosmosHistoryProvider(HistoryProvider):
             'history': [ item.to_dict() for item in history ]
         }
         if metadata is not None:
-            item['metadata'] = metadata
+            item_meta = {}
+            for k,v in metadata.items():
+                if k not in ('id', 'history'):
+                    ## If v has a to_dict method, use it
+                    if hasattr(v, 'to_dict'):
+                        item_meta[k] = v.to_dict()
+                    elif hasattr(v, 'to_api_response'):
+                        item_meta[k] = v.to_api_response()
+                    elif hasattr(v, '__dict__'):
+                        item_meta[k] = v.__dict__
+                    else:
+                        item_meta[k] = v
+                    item_meta[k] = v
+            item['metadata'] = item_meta
         if self._work_async:
             self._executor.submit(upsert_item, item, source=self._config_name)
         else:
