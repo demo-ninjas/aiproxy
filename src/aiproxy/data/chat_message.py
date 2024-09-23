@@ -56,6 +56,18 @@ class ChatMessage:
         )
     
     def to_dict(self) -> dict: 
+        citations = None
+        if self.citations is not None: 
+            citations = []
+            for citation in self.citations: 
+                if hasattr('to_dict'):
+                    citations.append(citation.to_dict())
+                elif hasattr('to_api_response'):
+                    citations.append(citation.to_api_response())
+                else: 
+                    citations.append(citation)
+
+        citations = [ citation.to_dict() if hasattr('to_dict') else citation for citation in self.citations ] if self.citations is not None else None
         return {
             'message': self.message,
             'role': self.role,
@@ -64,7 +76,7 @@ class ChatMessage:
             'tool_calls': self.tool_calls,
             'tool_name': self.tool_name,
             'tool_call_id': self.tool_call_id,
-            'citations': [ citation.to_api_response() if hasattr('to_api_response') else citation for citation in self.citations ] if self.citations is not None else None,
+            'citations': citations,
             'assistant_id': self.assistant_id,
             'run_id': self.run_id,
             'id': self.id,
