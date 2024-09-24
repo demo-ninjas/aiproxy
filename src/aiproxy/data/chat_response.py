@@ -36,7 +36,9 @@ class ChatCitation:
         if "end" in datasorce_citation: citation.end = datasorce_citation.get("end", None)
         if "start" in datasorce_citation: citation.start = datasorce_citation.get("start", None)
         return citation
-
+    
+    def to_dict(self) -> dict:
+        return self.to_api_response()
 
 class ChatResponse: 
     id: str|None = None
@@ -89,3 +91,6 @@ class ChatResponse:
                 if not k.startswith("_") and not k.startswith("internal_"): 
                     out[k] = v
         return out
+    
+    def to_dict(self) -> dict:
+        return self.to_api_response()
