@@ -68,7 +68,7 @@ class SuggestionsAgent(Agent):
     def reset(self):
         self._isolated_thread_id = None
     
-    def process_message(self, message:str, context:ChatContext) -> ChatResponse:        
+    def process_message(self, message:str, context:ChatContext, **kwargs) -> ChatResponse:        
         context.init_history()
         if context.history is None or len(context.history) == 0:
             resp = ChatResponse()

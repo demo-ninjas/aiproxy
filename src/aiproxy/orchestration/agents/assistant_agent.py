@@ -20,7 +20,7 @@ class AssistantAgent(Agent):
     def reset(self):
         self._isolated_thread_id = None
         
-    def process_message(self, message:str, context:ChatContext) -> ChatResponse:
+    def process_message(self, message:str, context:ChatContext, **kwargs) -> ChatResponse:
         context.init_history()
         assistant_thread_id = context.get_metadata('assistant-thread-id')
         context_for_assistant = context.clone_for_thread_isolation(with_streamer=True)

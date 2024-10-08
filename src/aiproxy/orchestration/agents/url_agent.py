@@ -44,7 +44,7 @@ class UrlAgent(Agent):
     def reset(self):
         pass
     
-    def process_message(self, message:str, context:ChatContext) -> ChatResponse:
+    def process_message(self, message:str, context:ChatContext, **kwargs) -> ChatResponse:
         from aiproxy.functions.url_functions import load_url_response
 
         url = self._url

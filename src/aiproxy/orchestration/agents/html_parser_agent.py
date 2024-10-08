@@ -21,7 +21,7 @@ class HtmlPaserAgent(Agent):
     def reset(self):
         pass
     
-    def process_message(self, message:str, context:ChatContext) -> ChatResponse:
+    def process_message(self, message:str, context:ChatContext, **kwargs) -> ChatResponse:
         try:
             extraction_ctx = {}
             result = {}

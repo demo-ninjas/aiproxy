@@ -22,7 +22,7 @@ class OrchestratorProxyAgent(Agent):
     def reset(self):
         self._isolated_thread_id = None
         
-    def process_message(self, message:str, context:ChatContext) -> ChatResponse:
+    def process_message(self, message:str, context:ChatContext, **kwargs) -> ChatResponse:
         original_context = context
         if self._thread_isolated:
             context = context.clone_for_thread_isolation(self._isolated_thread_id)

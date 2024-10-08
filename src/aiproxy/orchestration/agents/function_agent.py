@@ -36,7 +36,7 @@ class FunctionAgent(Agent):
     def reset(self):
         pass
     
-    def process_message(self, message:str, context:ChatContext) -> ChatResponse:
+    def process_message(self, message:str, context:ChatContext, **kwargs) -> ChatResponse:
         result = invoke_registered_function(self._function_name, message, context, predefined_args=self._predefined_args, arg_preprocessor=self._arg_preprocessor, cast_result_to_string=self._cast_result_to_string)
         response = ChatResponse()
         if result == FAILED_INVOKE_RESPONSE:

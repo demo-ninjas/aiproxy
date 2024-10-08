@@ -36,7 +36,7 @@ class AnalyseImageAgent(Agent):
     def reset(self):
         self._isolated_thread_id = None
     
-    def process_message(self, message:str, context:ChatContext) -> ChatResponse:
+    def process_message(self, message:str, context:ChatContext, **kwargs) -> ChatResponse:
         if self._single_shot:
             context = context.clone_for_single_shot()
         elif self._thread_isolated:
