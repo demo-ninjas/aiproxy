@@ -31,35 +31,35 @@ class AzureSearchConfig:
         
         config = AzureSearchConfig()
         config.endpoint = config_item.get("endpoint", None) or config_item.get("host", None) or config_item.get("url", None)
-        if config.endpoint is not None and config.endpoint.upper() == "DEFAULT":
+        if config.endpoint is None or config.endpoint.upper() == "DEFAULT":
             config.endpoint = AzureSearchConfig.__root_endpoint()
 
         config.key = config_item.get("key") or config_item.get("search-key", None) or config_item.get("query-key", None) or config_item.get("access-key", None)
-        if config.key is not None and config.key.upper() == "DEFAULT":
+        if config.key is None or config.key.upper() == "DEFAULT":
             config.key = AzureSearchConfig.__root_key()
 
         config.index_name = config_item.get("index") or config_item.get("index-name", None) or config_item.get("collection", None)
-        if config.index_name is not None and config.index_name.upper() == "DEFAULT":
+        if config.index_name is None or config.index_name.upper() == "DEFAULT":
             config.index_name = AzureSearchConfig.__root_index_name()
 
         config.connection_string = config_item.get("connection", None) or config_item.get("connectionString", None) or config_item.get("connection-string", None)
-        if config.connection_string is not None and config.connection_string.upper() == "DEFAULT":
+        if config.connection_string is None or config.connection_string.upper() == "DEFAULT":
             config.connection_string = AzureSearchConfig.__root_connection_string()
 
         config.embedding_model = config_item.get("embedding-model") or config_item.get("embedding-model-name", None)
-        if config.embedding_model is not None and config.embedding_model.upper() == "DEFAULT":
+        if config.embedding_model is None or config.embedding_model.upper() == "DEFAULT":
             config.embedding_model = AzureSearchConfig.__root_embedding_model()
 
         config.semantic_config = config_item.get("semantic-config") or config_item.get("semantic-config-name", None)
-        if config.semantic_config is not None and config.semantic_config.upper() == "DEFAULT":
+        if config.semantic_config is None or config.semantic_config.upper() == "DEFAULT":
             config.semantic_config = AzureSearchConfig.__root_semantic_config()
 
         config.scoring_profile = config_item.get("scoring-profile") or config_item.get("scoring-profile-name", None) or config_item.get("scoring", None)
-        if config.scoring_profile is not None and config.scoring_profile.upper() == "DEFAULT":
+        if config.scoring_profile is None or config.scoring_profile.upper() == "DEFAULT":
             config.scoring_profile = AzureSearchConfig.__root_scoring_profile()
 
         vf = config_item.get("vectors") or config_item.get("vector-fields", None) or config_item.get("vector-configs", None)
-        if vf is not None and type(vf) is str and vf.upper() == "DEFAULT":
+        if vf is None or (type(vf) is str and vf.upper() == "DEFAULT"):
             config.vector_fields = AzureSearchConfig.__root_vector_fields()
         elif vf is not None and type(vf) is list:
             config.vector_fields = []

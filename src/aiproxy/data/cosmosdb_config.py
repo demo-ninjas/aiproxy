@@ -20,23 +20,23 @@ class CosmosDBConfig:
         
         config = CosmosDBConfig()
         config.host = config_item.get("host", None)
-        if config.host is not None and config.host.upper() == "DEFAULT":
+        if config.host is None or config.host.upper() == "DEFAULT":
             config.host = CosmosDBConfig.__root_host_name()
 
         config.key = config_item.get("key") or config_item.get("masterKey", None)
-        if config.key is not None and config.key.upper() == "DEFAULT":
+        if config.key is None or config.key.upper() == "DEFAULT":
             config.key = CosmosDBConfig.__root_key()
 
         config.database_id = config_item.get("database") or config_item.get("databaseId", None)
-        if config.database_id is not None and config.database_id.upper() == "DEFAULT":
+        if config.database_id is None or config.database_id.upper() == "DEFAULT":
             config.database_id = CosmosDBConfig.__root_db_name()
 
         config.container_id = config_item.get("container") or config_item.get("containerId", None)
-        if config.container_id is not None and config.container_id.upper() == "DEFAULT":
+        if config.container_id is None or config.container_id.upper() == "DEFAULT":
             config.container_id = CosmosDBConfig.__root_container_name()
 
         config.connection_string = config_item.get("connection", None) or config_item.get("connectionString", None)
-        if config.connection_string is not None and config.connection_string.upper() == "DEFAULT":
+        if config.connection_string is None or config.connection_string.upper() == "DEFAULT":
             config.connection_string = CosmosDBConfig.__root_connection_string()
 
         config.__validate()
