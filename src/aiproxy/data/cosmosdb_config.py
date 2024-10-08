@@ -49,8 +49,8 @@ class CosmosDBConfig:
             raise ValueError(f"CosmosDB config is missing required field 'container'")
         if self.host is None and self.connection_string is None:
             raise ValueError(f"CosmosDB config is missing a required field either 'host' or 'connectionString'")
-        if self.host is not None and self.key is None and self.connection_string is None:
-            raise ValueError(f"CosmosDB config is missing a required field 'key'")
+        # if self.host is not None and self.key is None and self.connection_string is None:
+        #     raise ValueError(f"CosmosDB config is missing a required field 'key'")
         
 
     def __load_root_config() -> 'CosmosDBConfig':

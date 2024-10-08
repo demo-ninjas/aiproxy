@@ -79,8 +79,8 @@ class AzureSearchConfig:
             raise ValueError(f"Search config is missing required field 'index'")
         if self.endpoint is None and self.connection_string is None:
             raise ValueError(f"Search config is missing a required field either 'endpoint' or 'connection-string'")
-        if self.endpoint is not None and self.key is None and self.connection_string is None:
-            raise ValueError(f"Search config is missing a required field 'key' (when not using a connection string)")
+        # if self.endpoint is not None and self.key is None and self.connection_string is None:
+            # raise ValueError(f"Search config is missing a required field 'key' (when not using a connection string)")
         
         ## Currently, connection strings aren't supported by Azure AI Search, so we'll need to use the key or Managed Identity only - let's throw an error if we have a connection string
         if self.connection_string is not None:
