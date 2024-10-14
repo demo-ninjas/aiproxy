@@ -729,7 +729,8 @@ Following are the available configuration options you can use to customise the o
 * `planner-model` - The AI model deployment to use for the planner
 * `responder-model` - The AI model deployment to use for the responder
 * `proxy` - The name/config of the proxy to use for both the planner and the responder
-* `include-step-names-in-result` - A boolean flag indicating whether or not to include a list of the step names in the metadata of the responsse 
+* `include-step-names-in-result` - A boolean flag indicating whether or not to include a list of the step names in the metadata of the response 
+* `response-type` - The type of response to return after executing the plan (eg. markdown, json, adaptive-card, a few sentences, short paragraph, etc...) [Default: markdown]
 
 
 ### Sequential-Agents Orchestrator
