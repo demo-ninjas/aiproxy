@@ -870,7 +870,10 @@ class StepPlanOrchestrator(AbstractProxy):
         
 
         ## If the response-type is a structured response, then we need to return the structured response
-        if self._final_response_type.lower() in ['json', 'yaml', 'adaptive-card', 'html', 'xml', 'adaptivecard']:
+        resp_type = self._final_response_type.lower().strip() if self._final_response_type else 'markdown'
+        if '/' in resp_type: 
+            resp_type = resp_type[resp_type.find('/')+1: ]
+        if resp_type in ['json', 'yaml',  'adaptivecard', 'adaptive-card', 'card', 'vnd.microsoft.card.adaptive', 'html', 'xml' ]:
             from aiproxy.functions.string_functions import extract_code_block_from_markdown
             return extract_code_block_from_markdown(result.message, return_original_if_not_found=True)
 
