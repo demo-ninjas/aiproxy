@@ -87,17 +87,19 @@ In a final plan, the last step must be a call to the special function called 'ge
 * intent - A string that describes what you believe is the intent of the user's prompt
 * hint - A string that helps to describe what the answer to the user's prompt would be ( this will be passed as a hint to the AI generating the final response)
 
+The 'generate_final_response' step can only be used once in a plan, and it must be the last step in the plan - your plan will be rejected if there are multiple 'generate_final_response' steps.
+
 Conditions are defined as a string that is a comparison between two values, where the comparison is one of the following: '==', '!=', '>', '<', '>=', '<='.
 
 A condition value can be any of the following: 
 * A context variable (a string prefixed with a '$')
 * A literal string or number
-* An attribute of a context variable using the dot notation (eg. $context_variable_name.attribute_name)
-* An element from a context variable that is a list by using the index of the element in square brackets (eg. $list_name[0])
+* An attribute of a context variable using the dot notation (eg. $context_variable_name.attribute_name) [Note: Only an attribute name is supported with the dot notation, do not use object syntax (eg. x.{{a:a, b:b}} - this is not supported!), ]
+* An element from a context variable that is a list by using the index of the element in square brackets (eg. $list_name[0]) [Note: In conditions, when using this notation, only a single element can be extracted, do not use slices!]
 * A function call to one of the named available functions above, where the function args are described as a JSON object (eg. filter_list({{ "array":"$context_var", "field":"cuisine", "value":"Italian" }}))
 * One of the following internal functions: 'count', 'length', 'len', 'exists' - these functions take a single argument and return the count of the elements in the list, the length of the string, or whether the value is not None and has a length greater than 0 - specify like this: 'count($context_var)'
 
-You may use the 'run_code' function to execute python code in a step. 
+You may use the 'run_code' function to execute python code in a step.
 
 The 'run_code' function takes the following arguments:
 * code - The python code to execute. You must write the code as a function that takes a single parameter: data. The function signature must include this parameter, eg. def myfunc(data)
@@ -181,14 +183,20 @@ And, here's the context variables that have been gathered so far:
 If a context variable's data has been cut off in the above list, you can retrieve the full value of the variable by using the function 'get_dict_val' with the variable name as the argument (eg. 'get_dict_val({{"key":"variable_name"}})').
 """
 
-GENERATE_FINAL_RESPONSE_TEMPLATE = """You are responding to a prompt from a user and your role is to write a nice friendly, conversational response to their prompt in markdown format.
+GENERATE_FINAL_RESPONSE_TEMPLATE = """You are responding to a prompt from a user and your role is to use the data and functions provided to complete the response to the prompt.
 
-You are to always respond in the language of the user prompt, and provide an appropriate level of detail as expected by the user prompt.
+The response type is: {response_type}
+
+You must generate a response that precisely complies with the response type specified.
+eg. If the response type is 'json', then you must return a valid JSON document as the response - do not add any commentary or additional text, only the json document.
+
+
+If the response type is a textual resopnse (eg. markdown, plain-text, sentence, paragraph etc...), then you must response in a nice, friendly, conversational way to their prompt, in the language of the user prompt, providing an appropriate level of detail as expected by the user prompt.
 If you cannot definitively determine the language of the user's prompt, then reply in English.
 
 {preamble}
 
-The user prompt is provided below below [USER_PROMPT] and [END_USER_PROMPT]
+The user prompt is provided below between [USER_PROMPT] and [END_USER_PROMPT]
 
 [USER_PROMPT]
 
@@ -200,7 +208,7 @@ The user prompt is provided below below [USER_PROMPT] and [END_USER_PROMPT]
 The intent of the prompt has been identified as: {intent}
 
 
-The planning AI has provided a hint for you: {hint}
+The planning AI provided you with the following hint for fulfilling the prompt: {hint}
 
 
 The steps that were taken to action the user prompt / gather the required data, are provided below between [STEPS] and [END_STEPS]
@@ -217,7 +225,7 @@ They are in the form of a JSON array of steps, where each step is a dictionary w
 
 [END_STEPS]
 
-For each step above that produced data, the outcome is listed below in the following format: 
+For each step above that produced data, the outcome is listed between [STEP_OUTCOMES] and [END_STEP_OUTCOMES] in the following format: 
 Step: <Step Name> [Variable: <Variable Name>]
 <Data Produced>
 
@@ -232,7 +240,7 @@ etc...
 
 [END_STEP_OUTCOMES]
 
-For each context variable referenced in the steps, you can obtain the value of the variable by using the function 'get_dict_val' with the variable name as the argument (eg. 'get_dict_val({{"key":"variable_name"}})').
+For each variable referenced in the steps above, you can obtain the value of the variable by using the function 'get_dict_val' with the variable name as the argument (eg. 'get_dict_val({{"key":"variable_name"}})').
 
 The planner AI has suggested the following context variables are likely to be of use when generating your response, provided below between [DATA] and [END_DATA]
 
@@ -243,7 +251,7 @@ The planner AI has suggested the following context variables are likely to be of
 [END_DATA]
 
 
-The recent messages in the conversation are provided below, ordered from most recent to oldest, between [RECENT_MESSAGES] and [END_RECENT_MESSAGES]
+The recent messages in the conversation are provided below between [RECENT_MESSAGES] and [END_RECENT_MESSAGES], ordered from most recent to oldest: 
 
 [RECENT_MESSAGES]
 
@@ -270,6 +278,7 @@ class StepPlanOrchestrator(AbstractProxy):
         self._include_step_names_in_result = self._config.get('include-step-names-in-result', True)
         self._include_step_args_in_result = self._config.get('include-step-args-in-result', True)
         self._final_response_template = self._config.get('final-response-template', GENERATE_FINAL_RESPONSE_TEMPLATE)
+        self._final_response_type = self._config.get('final-response-type', self._config.get('response-type', 'markdown'))
         
 
 
@@ -342,6 +351,7 @@ class StepPlanOrchestrator(AbstractProxy):
         context.push_stream_update("Cleaning up after responding...", PROGRESS_UPDATE_MESSAGE)
         plan_result = ChatResponse()
         plan_result.message = step_results[-1]
+        plan_result.metadata = { "response-type": self._final_response_type }
         if self._include_step_names_in_result:
             metadata_steps = []
             for step in steps: 
@@ -363,8 +373,11 @@ class StepPlanOrchestrator(AbstractProxy):
                 else: 
                     step_desc = step.get('step') or "<unnamed>"
 
+                cond = step.get('condition')
+                if cond:
+                    step_desc += f" [Condition: {cond}]"
                 metadata_steps.append(step_desc)
-            plan_result.metadata = { "steps":metadata_steps }
+            plan_result.metadata['steps'] = metadata_steps
 
         ## Add the original message to the context
         context.add_prompt_to_history(message, 'user')
@@ -414,6 +427,8 @@ class StepPlanOrchestrator(AbstractProxy):
                 "function": "generate_final_response",
                 "args": {
                     "original_prompt": original_prompt,
+                    "response_type": self._final_response_type,
+                    "response_type": self._final_response_type,
                     "intent": "unknown",
                     "data": [ x.get('output') for x in steps if x.get('output') ]
                 }
@@ -422,6 +437,26 @@ class StepPlanOrchestrator(AbstractProxy):
         return steps
 
     def execute_steps(self, original_prompt:str, prompt_context:ChatContext, working_notifier:Callable[[], None], planner_ctx:ChatContext, steps:list, context_map:dict, step_results:list, iterator_count:int = 0) -> list:
+        ## Check that the generate_final_response function is not called more than once
+        final_response_count = len([ x for x in steps if x.get('function') == 'generate_final_response' ])
+        if final_response_count > 1:
+            ## Request a re-evaluation of the plan
+            steps_executed_str = self.generate_steps_executed_string(steps)
+            context_vars_str = self.generate_context_vars_string(context_map)
+            prompt = RE_EVALUATE_STEP_PLAN_PROMPT_TEMPLATE.format(
+                        steps_executed=steps_executed_str,
+                        context_variables=context_vars_str, 
+                        preamble="The 'generate_final_response' step was included multiple times. This is not allowed, you can only include it once, and when included, it must be the last step of the plan."
+                    )
+            function_filter = lambda x,y: x in ['get_dict_val', 'filter_list', 'get_obj_field', 'random_choice', 'merge_lists', 'run_code', 'calculate-maths-expression']
+            updated_plan_result = self._proxy.send_message(prompt, planner_ctx, self._planner_model, use_functions=True, function_filter=function_filter)
+            new_steps = self.validate_step_plan(original_prompt, updated_plan_result)
+            executed_steps = [ x for x in steps if x.get('executed', False) ]
+            full_step_list = executed_steps + new_steps
+            return self.execute_steps(original_prompt, prompt_context, working_notifier, planner_ctx, full_step_list, context_map, step_results, iterator_count+1)
+
+
+        ## Execute the steps
         for step in steps:
             if step.get('executed', False): # Skip steps that have already been executed
                 continue    
@@ -455,12 +490,13 @@ class StepPlanOrchestrator(AbstractProxy):
                 if func_name == 'generate_final_response':
                     step_progression_state = "Failed when generating the final response - perhaps the generated response was too long?"
                     result = self.generate_final_response(original_prompt, 
-                                                        data=func_args.get('data'),
-                                                        intent=func_args.get('intent'), 
-                                                        hint=func_args.get('hint'),
-                                                        vars=context_map,
-                                                        steps=steps,
-                                                        context=prompt_context)
+                                                            resopnse_type=self._final_response_type,
+                                                            data=func_args.get('data'),
+                                                            intent=func_args.get('intent'), 
+                                                            hint=func_args.get('hint'),
+                                                            vars=context_map,
+                                                            steps=steps,
+                                                            context=prompt_context)
                 elif func_name == 're-evaluate-plan':
                     step_progression_state = "Failed to request a re-evaluation of the plan"
                     ## Send a message to the planner to re-evaluate the plan given the current state of the context + plan
@@ -475,7 +511,7 @@ class StepPlanOrchestrator(AbstractProxy):
                         preamble=preamble
                     )
 
-                    function_filter = lambda x,y: x in ['get_dict_val', 'filter_list', 'get_obj_field', 'random_choice', 'merge_lists', 'calculate-maths-expression']
+                    function_filter = lambda x,y: x in ['get_dict_val', 'filter_list', 'get_obj_field', 'random_choice', 'merge_lists', 'run_code', 'calculate-maths-expression']
                     updated_plan_result = self._proxy.send_message(prompt, planner_ctx, self._planner_model, use_functions=True, function_filter=function_filter)
                     new_steps = self.validate_step_plan(original_prompt, updated_plan_result)
                     executed_steps = [ x for x in steps if x.get('executed', False) ]
@@ -491,6 +527,7 @@ class StepPlanOrchestrator(AbstractProxy):
                     if not func_def:
                         if func_name == 'generate_final_response':
                             result = self.generate_final_response(original_prompt, 
+                                                        resopnse_type=self._final_response_type,
                                                         data=func_args.get('data'),
                                                         intent=func_args.get('intent'), 
                                                         hint=func_args.get('hint'),
@@ -519,14 +556,18 @@ class StepPlanOrchestrator(AbstractProxy):
                 step['executed'] = True
                 step_results.append(result)
             except Exception as ex:
+                import traceback
+
                 step['executed'] = False
                 if iterator_count > self._config.get("max-plan-iterations", 15):
                     logging.error(f"Failed to execute step: {step.get('step')} - with reason: {step_progression_state}. Error was: {str(ex)} - will not re-evaluate the plan")
+                    traceback.print_exc()
                     raise ex
                 else: 
                     prompt_context.push_stream_update("Had an issue in a step - will re-evaluate the Plan...", "progress")
                     prompt_context.push_stream_update("...Re-evaluating Plan... [Had some issues with: " + step.get('step') + "]", "step")
-                    logging.error(f"Failed to execute step: {step.get('step')} - with reason: {step_progression_state}. Error was: {str(ex)} - will ask the planner to re-think its plan")
+                    logging.error(f"Failed to execute step: {step.get('step')} - with reason: {step_progression_state}. Error was: {str(ex)} - will ask the planner to re-think its plan. Step Detail: {step}")
+                    traceback.print_exc()
                     steps_executed_str = self.generate_steps_executed_string(steps)
                     context_vars_str = self.generate_context_vars_string(context_map)
 
@@ -537,7 +578,7 @@ class StepPlanOrchestrator(AbstractProxy):
                     
                     The Error Message was: {str(ex)}
 
-                    Can you re-evaluate the plan, considering a different approach for this step?
+                    Can you re-evaluate the plan, perhaps considering a different approach for this step?
                     
                     """
                     prompt = RE_EVALUATE_STEP_PLAN_PROMPT_TEMPLATE.format(
@@ -546,7 +587,7 @@ class StepPlanOrchestrator(AbstractProxy):
                         preamble=preamble
                     )
 
-                    function_filter = lambda x,y: x in ['get_dict_val', 'filter_list', 'get_obj_field', 'random_choice', 'merge_lists', 'calculate-maths-expression']
+                    function_filter = lambda x,y: x in ['get_dict_val', 'filter_list', 'get_obj_field', 'random_choice', 'merge_lists', 'run_code', 'calculate-maths-expression']
                     updated_plan_result = self._proxy.send_message(prompt, planner_ctx, self._planner_model, use_functions=True, function_filter=function_filter)
                     new_steps = self.validate_step_plan(original_prompt, updated_plan_result)
                     executed_steps = [ x for x in steps if x.get('executed', False) ]
@@ -712,22 +753,22 @@ class StepPlanOrchestrator(AbstractProxy):
         elif '(' in val and ')' in val:
             ## It's a function
             func_name = val[:val.index("(")]
-            args_str = val[val.index("(")+1:val.index(")")]
-            if args_str.startswith("$"):
-                args_str = context_map.get(args_str[1:])
-
-            if type(args_str) is list: 
-                args_str = ",".join(args_str)
+            args_def = val[val.index("(")+1:val.index(")")]
+            if args_def.startswith("$"):
+                args_def = context_map.get(args_def[1:])
                 
             args = []
-            for arg in args_str.split(','):
-                arg = arg.strip()
-                if arg.startswith("$"):
-                    arg = context_map.get(arg[1:])
-                if type(arg) is str: 
+            if type(args_def) is str:
+                for arg in args_def.split(','):
                     arg = arg.strip()
-                args.append(arg)
-
+                    if arg.startswith("$"):
+                        arg = context_map.get(arg[1:])
+                    if type(arg) is str: 
+                        arg = arg.strip()
+                    args.append(arg)
+            else: 
+                args.append(args_def)
+            
             if func_name == 'count' or func_name == 'length' or func_name == 'len':
                 if args[0] is None:
                     val = 0
@@ -737,7 +778,7 @@ class StepPlanOrchestrator(AbstractProxy):
                 val = args[0] is not None and len(args[0]) > 0
             else:
                 f_args = {}
-                for arg_name, arg_val in json.loads(args_str).items():
+                for arg_name, arg_val in json.loads(args_def).items():
                     self._parse_value_directives(context, context_map, f_args, arg_name, arg_val)
                 val = invoke_registered_function(func_name, f_args, context_map, cast_result_to_string=False, sys_objects={ 'vars': context_map,'steps':steps })
                 if type(val) is str and val.startswith(FAILED_INVOKE_RESPONSE):
@@ -748,9 +789,10 @@ class StepPlanOrchestrator(AbstractProxy):
     def generate_final_response(
         self,
         original_prompt:Annotated[str, "The prompt that was recieved from the user"],
-        data:Annotated[str, "The list of context variables that are useful for writing the response to the user"],
+        resopnse_type:Annotated[str, "The type of response to generate, eg. 'markdown', 'adaptive-card', 'json', 'yaml', 'html', 'single sentence', 'paragraph', etc..."] = 'markdown',
+        data:Annotated[str, "The list of context variables that are useful for writing the response to the user"] = None,
         intent:Annotated[str, "The intent of the prompt from the user"] = None,
-        hint:Annotated[str, "A hint for what the answer is, or how it should look"] = None,
+        hint:Annotated[str, "A hint for what the answer is, or how it should be completed"] = None,
         vars:dict = None,
         steps:list[dict] = None,
         context:ChatContext = None
@@ -789,6 +831,7 @@ class StepPlanOrchestrator(AbstractProxy):
         prompt = self._final_response_template.format(
             preamble=preamble_to_use or '',
             user_prompt=original_prompt,
+            response_type=resopnse_type or 'markdown',
             intent=intent or 'Not Provided',
             hint=hint or 'Not Provided',
             data_string=data_string,
@@ -818,10 +861,17 @@ class StepPlanOrchestrator(AbstractProxy):
             return args
         resp_context.function_args_preprocessor = args_preprocessor
 
-        result = self._proxy.send_message(prompt, resp_context, self._responder_model, use_functions=True, function_filter=lambda x,y: x in ['get_dict_val', 'filter_list', 'get_obj_field', 'random_choice', 'merge_lists', 'calculate-maths-expression'], use_completions_data_source_extensions=False)
+        result = self._proxy.send_message(prompt, resp_context, self._responder_model, use_functions=True, function_filter=lambda x,y: x in ['get_dict_val', 'filter_list', 'get_obj_field', 'random_choice', 'merge_lists', 'run_code', 'calculate-maths-expression'], use_completions_data_source_extensions=False)
 
         if result.filtered:
             return f"Sorry, I can't respond to that."
         elif result.failed:
             return f"Sorry, I couldn't generate a response due to an error"        
+        
+
+        ## If the response-type is a structured response, then we need to return the structured response
+        if self._final_response_type in ['json', 'yaml', 'adaptive-card', 'html', 'xml']:
+            from aiproxy.functions.string_functions import extract_code_block_from_markdown
+            return extract_code_block_from_markdown(result.message, return_original_if_not_found=True)
+
         return result.message

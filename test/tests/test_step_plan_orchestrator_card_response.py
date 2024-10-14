@@ -23,6 +23,7 @@ def run(streamer:StreamWriter):
     print("Running a test using the Step Plan Orchestrator")
 
     config = ChatConfig('step_plan')
+    config["response-type"] = "adaptive-card"
     config['functions'] = [
         'ai_chat',
         'ai_assistants_chat',
@@ -47,8 +48,15 @@ def run(streamer:StreamWriter):
     config['responder-preamble'] = """You are a personal assistant for families.
 
     You are currently talking with the "Stanbrook" family.
-    """
 
+    You are responding in adaptive card format.
+
+    The card should include the following information:
+    * The name of the recipe
+    * The ingredients required for the recipe
+    * The steps to make the recipe
+    * The image of the dish (if available)
+    """
     config['rules'] = """Additional Rules/Considerations when generating a plan: 
     * If the user gives some information about their family, you should record a note about that, so that you can refer to it later, use the function 'save-family-note' to save the note
     * If the user gives multiple pieces of information about their family, you should record a separate note for each 
@@ -74,10 +82,11 @@ def run(streamer:StreamWriter):
     If you don't like the look of the pizza recipes, then find a suitable pasta recipe.
     Again, if they don't look good, then find a curry recipe that works for the family.
     """
-    print(f"Question: {q}")
     resp = step_orchestrator.send_message(q, context)
-    print(resp.message)
 
+    print(f"Question: {q}")
+    print("\n\nResponse:\n\n")
+    print(resp.message)
     print(f"\n\nOutput Format: {resp.metadata.get('response-type', 'Unknown')}")
     print('\n\nSteps used to respond to this prompt:')
     for step in resp.metadata.get('steps', []) if resp.metadata else []:

@@ -42,6 +42,17 @@ def str_split(
     """
     return string.split(delimiter)
 
+def extract_code_block_from_markdown(markdown:str, return_original_if_not_found:bool = True) -> str:
+    """
+    Extract a code block from a markdown string
+    """
+    start_of_code_block = markdown.find("```")
+    if start_of_code_block > -1:    
+        start_of_code_in_block = markdown.find("\n", start_of_code_block+3)
+        end_of_code_block = markdown.rfind("```", start_of_code_block+3)
+        return markdown[start_of_code_in_block:end_of_code_block].strip()
+    return markdown if return_original_if_not_found else ""
+
 def register_functions():
     from .function_registry import GLOBAL_FUNCTIONS_REGISTRY
     GLOBAL_FUNCTIONS_REGISTRY.register_base_function("str_concatenate", "Concatenate two strings together", str_concatenate)
