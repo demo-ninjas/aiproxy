@@ -57,7 +57,7 @@ eg.
 
 Respond with a JSON object like this:
 {
-    "sentiment": "positive",
+    "sentiment": "negative",
     "emotion": "Anger",
     "reasoning": "The user is expressing anger at the company for reducing the price of a product they recently purchased.",
     "sentiment-emoji": "😡",
