@@ -5,6 +5,11 @@ from aiproxy.data import ChatConfig
 GLOBAL_AGENTS_REGISTRY = {}
 GLOBAL_TYPES_REGISTRY = {}
 
+def reset_agents():
+    global GLOBAL_AGENTS_REGISTRY, GLOBAL_TYPES_REGISTRY
+    GLOBAL_AGENTS_REGISTRY = {}
+    GLOBAL_TYPES_REGISTRY = {}
+
 def agent_factory(config: dict|str|ChatConfig, **kwargs) -> Agent:
     global GLOBAL_AGENTS_REGISTRY
     global GLOBAL_TYPES_REGISTRY

@@ -26,6 +26,10 @@ class ProxyRegistry:
     def get_all_proxies(self):
         return self._proxies.values()
     
+    def reset(self):
+        self._proxies = {}
+        self._defaults = {}
+    
     def load_proxy(self, name_or_config:ChatConfig|str, proxy_type:type, **kwargs):
         proxy = None
         
