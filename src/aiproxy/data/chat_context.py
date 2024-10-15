@@ -14,6 +14,7 @@ class ChatContext:
     metadata:dict[str, any] = None
     metadata_transient_keys:list[str] = None
     current_msg_id:str = None
+    stream_paused:bool = False
 
     def __init__(self, 
                  thread_id:str = None, 
@@ -85,6 +86,7 @@ class ChatContext:
         Pushes the provided stream update to the stream referenced by this context (if there is one, otherwise it does nothing)
         """
         if self.stream_writer is not None:
+            if self.stream_paused: return
             if message_type is not None:
                 if type(message) is dict: 
                     if "type" not in message and message_type is not None: 

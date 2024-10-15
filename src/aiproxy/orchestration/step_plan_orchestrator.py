@@ -861,7 +861,21 @@ class StepPlanOrchestrator(AbstractProxy):
             return args
         resp_context.function_args_preprocessor = args_preprocessor
 
-        result = self._proxy.send_message(prompt, resp_context, self._responder_model, use_functions=True, function_filter=lambda x,y: x in ['get_dict_val', 'filter_list', 'get_obj_field', 'random_choice', 'merge_lists', 'run_code', 'calculate-maths-expression'], use_completions_data_source_extensions=False)
+        resp_type = self._final_response_type.lower().strip() if self._final_response_type else 'markdown'
+        if '/' in resp_type: 
+            resp_type = resp_type[resp_type.find('/')+1: ]
+        is_structured_resp = False
+        if resp_type in ['json', 'yaml',  'adaptivecard', 'adaptive-card', 'card', 'vnd.microsoft.card.adaptive', 'html', 'xml' ]:
+            is_structured_resp = True
+
+        original_stream_state = resp_context.stream_paused
+        result = None
+        try:
+            if is_structured_resp:
+                resp_context.stream_paused = True
+            result = self._proxy.send_message(prompt, resp_context, self._responder_model, use_functions=True, function_filter=lambda x,y: x in ['get_dict_val', 'filter_list', 'get_obj_field', 'random_choice', 'merge_lists', 'run_code', 'calculate-maths-expression'], use_completions_data_source_extensions=False)
+        finally:
+            resp_context.stream_paused = original_stream_state
 
         if result.filtered:
             return f"Sorry, I can't respond to that."
@@ -870,10 +884,7 @@ class StepPlanOrchestrator(AbstractProxy):
         
 
         ## If the response-type is a structured response, then we need to return the structured response
-        resp_type = self._final_response_type.lower().strip() if self._final_response_type else 'markdown'
-        if '/' in resp_type: 
-            resp_type = resp_type[resp_type.find('/')+1: ]
-        if resp_type in ['json', 'yaml',  'adaptivecard', 'adaptive-card', 'card', 'vnd.microsoft.card.adaptive', 'html', 'xml' ]:
+        if is_structured_resp:
             from aiproxy.functions.string_functions import extract_code_block_from_markdown
             return extract_code_block_from_markdown(result.message, return_original_if_not_found=True)
 
