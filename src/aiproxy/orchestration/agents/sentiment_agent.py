@@ -6,13 +6,45 @@ from aiproxy.proxy import CompletionsProxy, GLOBAL_PROXIES_REGISTRY
 from aiproxy.functions.string_functions import extract_code_block_from_markdown
 from ..agent import Agent
 
-DEFAULT_SYSTEM_PROMPT = """Given a recent message history (provided as the user prompt), you are tasked with determining the sentiment of the user in this conversation.
+DEFAULT_SYSTEM_PROMPT = """Given a recent message history (provided as the user prompt), you are tasked with determining the sentiment of the user, along with defining an emotion for them.
 
-The user's sentiment can be: positive, negative, or neutral
+The following are the possible sentiments: 
+- positive
+- neutral
+- negative
 
-You should also provide a confidence score for your prediction.
+The following are the possible emotions:
+- Admiration
+- Adoration
+- Aesthetic Appreciation
+- Amusement
+- Anger
+- Anxiety
+- Awe
+- Awkwardness
+- Boredom
+- Calmness
+- Confusion
+- Craving
+- Disgust
+- Empathetic pain
+- Entrancement
+- Excitement
+- Fear
+- Horror
+- Interest
+- Joy
+- Nostalgia
+- Relief
+- Romance
+- Sadness
+- Satisfaction
+- Sexual desire
+- Surprise
 
-The user prompt will be a list of messages, with each message formatted as follows: "[role] message"
+You should also provide a confidence score for your prediction and a brief description of your reasoning.
+
+The user prompt will be a list of messages (sorted from most-recent to oldest), with each message formatted as follows: "[role] message"
 Each message will be precceeded by a single line with three asterisks ("***").
 eg. 
 ***
@@ -23,20 +55,19 @@ eg.
 [user] Hello, how are you?
 ***
 
-Note: The messages are provided in reverse order, with the most recent message first.
-
 Respond with a JSON object like this:
 {
     "sentiment": "positive",
+    "emotion": "Anger",
+    "reasoning": "The user is expressing anger at the company for reducing the price of a product they recently purchased.",
+    "sentiment-emoji": "😡",
+    "emotion-emoji": "😡",
     "confidence": 0.95
 }
 
-
-The sentiment you provide should be what you think the user's sentiment is, based on the recent conversation history provided in the user prompt.
-Do not use the user's role to determine sentiment, only the content of the messages.
+You are determining the sentiment of the user based on the recent conversation history provided in the user prompt, the sentiment of the assistant is not relevant.
 Return only the JSON object as the response.
 """
-
 
 class SentimentAgent(Agent):
     proxy:CompletionsProxy
