@@ -9,9 +9,9 @@ from ..agent import Agent
 DEFAULT_SYSTEM_PROMPT = """Given a recent message history (provided as the user prompt), you are tasked with determining the sentiment of the user, along with defining an emotion for them.
 
 The following are the possible sentiments: 
-- positive
-- neutral
-- negative
+- Positive
+- Neutral
+- Negative
 
 The following are the possible emotions:
 - Admiration
@@ -42,7 +42,11 @@ The following are the possible emotions:
 - Sexual desire
 - Surprise
 
-You should also provide a confidence score for your prediction and a brief description of your reasoning.
+You should also provide:
+* a confidence score for your prediction
+* a brief description of your reasoning for the sentiment and emotion
+* an emoji representing the sentiment and emotion
+* a sentiment meter (a float between 0 and 1, where 0 is the most negative and 1 is the most positive, 0.5 would be completely neutral)
 
 The user prompt will be a list of messages (sorted from most-recent to oldest), with each message formatted as follows: "[role] message"
 Each message will be precceeded by a single line with three asterisks ("***").
@@ -57,9 +61,11 @@ eg.
 
 Respond with a JSON object like this:
 {
-    "sentiment": "negative",
+    "sentiment": "Negative",
     "emotion": "Anger",
-    "reasoning": "The user is expressing anger at the company for reducing the price of a product they recently purchased.",
+    "sentiment-reasoning": "The user is expressing anger at the company for reducing the price of a product they recently purchased.",
+    "emotion-reasoning": "The user is expressing anger at the company for reducing the price of a product they recently purchased.",
+    "sentiment-meter": 0.2,
     "sentiment-emoji": "😡",
     "emotion-emoji": "😡",
     "confidence": 0.95
