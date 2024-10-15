@@ -101,62 +101,7 @@ def load_public_orchestrator_list() -> list[dict]:
             'name': 'completion', 
             'description': 'A simple orchestrator that responds to any given prompt',
             'pattern': 'completion'
-        },
-        {
-            'name': 'assistant', 
-            'description': 'A simple orchestrator that passes the prompt to an assistant (that you specify) that has been previously defined in the OpenAI API',
-            'pattern': 'assistant',
-            'requirements': [
-                'param: assistant (name or ID of assistant)'
-            ]
-        },
-        {
-            'name': 'multi-agent', 
-            'description': 'Passes the prompt to multiple agents, then interprets the reponses and returns a single succinct response',
-            'pattern': 'multi-agent',
-            'requirements': [
-                'param: agents (comma separated list of agent names/types)'
-            ]
-        },
-        {
-            'name': 'sequential-agent', 
-            'description': 'Sequntially passes the prompt to a group of agents, providing both the user prompt + previous responses to subsequent agents. The last agent is the final responder.',
-            'pattern': 'sequantial-agent',
-            'requirements': [
-                'param: agents (comma separated list of agent names/types)'
-            ]
-        },
-        {
-            'name': 'single-agent', 
-            'description': 'Passes the prompt to an agent, and returns the response from the agent (you must specify the agent)',
-            'pattern': 'single-agent', 
-            'requirements': [
-                'param: agent (name/type of Agent)'
-            ]
-        },
-        {
-            'name': 'step-plan', 
-            'description': 'Prepares a plan for how to response to the prompt, then executes the plan and returns a succinct response after completing the plan',
-            'pattern': 'step-plan'
-        },
-        {
-            'name': 'agent-select', 
-            'description': 'Selects which agent from a list of agents (must be known upfront) to pass the prompt to, then returns the response',
-            'pattern': 'agent-select'
-        },
-        {
-            'name': 'image', 
-            'description': 'Analyses a given image (must be attached) and returns a response',
-            'pattern': 'image',
-            'requirements': [
-                'file: attached (an image file)'
-            ]
-        },
-        {
-            'name': 'embedding', 
-            'description': 'Provides the embedding of the prompt',
-            'pattern': 'embedding'
-        }
+        }        
     ]
 
     ## Load the Public Orchestrators...
