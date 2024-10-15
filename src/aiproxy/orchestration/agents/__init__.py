@@ -69,6 +69,9 @@ def agent_factory(config: dict|str|ChatConfig, **kwargs) -> Agent:
     elif agent_type == 'suggestion' or agent_type == 'suggestions' or agent_type == 'next-action' or agent_type == 'next-action-agent' or agent_type == 'suggestions-agent':
         from .suggestions_agent import SuggestionsAgent
         agent = SuggestionsAgent(name, description, config, **kwargs)
+    elif agent_type == 'sentiment' or agent_type == 'sentiment-agent' or agent_type == 'conversation-sentiment':
+        from .sentiment_agent import SentimentAgent
+        agent = SentimentAgent(name, description, config, **kwargs)
     elif agent_type == 'analyse-image' or agent_type == 'analyse-image-agent' or agent_type == 'image':
         from .analyse_image_agent import AnalyseImageAgent
         agent = AnalyseImageAgent(name, description, config, **kwargs)
