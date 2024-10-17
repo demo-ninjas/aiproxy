@@ -57,21 +57,43 @@ def load_named_config(name:str, raise_if_not_found:bool = True, use_cache:bool =
     
     ## Apply Replacements
     if config_item is not None: 
-        if type(config_item) == dict:
-            for k,v in config_item.items():
-                if type(v) == str:
-                    if v.startswith("$"):
-                        config_item[k] = os.environ.get(v[1:], v)
-                    elif v.startswith("@"):
-                        config_item[k] = load_named_config(v[1:], raise_if_not_found, use_cache)
-                    elif v.startswith("!"):
-                        config_item[k] = load_text_file(v[1:])
+        apply_replacements(config_item, raise_if_not_found, use_cache)
 
         if use_cache: 
             ## Cache the config
             CACHED_CONFIGS[name] = config_item
     
     return config_item
+
+def apply_replacements(config_item:any, raise_if_not_found:bool = True, use_cache:bool = True):
+    if config_item is None:
+        return
+    
+    if type(config_item) == dict: # If it's a dictionary, go through each key and apply replacements to the value (and it's children)
+        for k,v in config_item.items():
+            if type(v) == str:  ## If the value is a string, apply replacements
+                if v.startswith("$"):
+                    config_item[k] = os.environ.get(v[1:], v)
+                elif v.startswith("@"):
+                    config_item[k] = load_named_config(v[1:], raise_if_not_found, use_cache)
+                elif v.startswith("!"):
+                    config_item[k] = load_text_file(v[1:])
+            elif type(v) == list:    ## If the value is a list, apply replacements to each item in the list
+                for i in range(len(v)):
+                    apply_replacements(v[i], raise_if_not_found, use_cache)
+            elif type(v) == dict:   ## If the value is a dictionary, apply replacements to the dictionary
+                apply_replacements(v, raise_if_not_found, use_cache)
+    elif type(config_item) == list: # If it's a list, apply replacements to each item in the list
+        for i in range(len(config_item)):
+            apply_replacements(config_item[i], raise_if_not_found, use_cache)
+    elif type(config_item) == str: # If it's a string, apply replacements
+        if config_item.startswith("$"):
+            return os.environ.get(config_item[1:], config_item)
+        elif config_item.startswith("@"):
+            return load_named_config(config_item[1:], raise_if_not_found, use_cache)
+        elif config_item.startswith("!"):
+            return load_text_file(config_item[1:])
+    
 
 def load_text_file(file_path:str) -> str:
     """
