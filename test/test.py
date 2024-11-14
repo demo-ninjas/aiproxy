@@ -79,10 +79,10 @@ import tests
 # test_step_plan_orchestrator(streamer)
 # print("\n------------------------\n")
 
-# Test the Step Plan Orchestrator (with adaptive card response)
-from tests.test_step_plan_orchestrator_card_response import run as test_step_plan_orchestrator_card_resopnse
-test_step_plan_orchestrator_card_resopnse(streamer)
-print("\n------------------------\n")
+# # Test the Step Plan Orchestrator (with adaptive card response)
+# from tests.test_step_plan_orchestrator_card_response import run as test_step_plan_orchestrator_card_resopnse
+# test_step_plan_orchestrator_card_resopnse(streamer)
+# print("\n------------------------\n")
 
 # ## Test the Select Agent Orchestrator
 # from tests.test_select_agent_orchestrator import run as test_select_agent_orchestrator
@@ -94,10 +94,10 @@ print("\n------------------------\n")
 # test_configured_orchestrator(streamer)
 # print("\n------------------------\n")
 
-# # Test the Image Agent
-# from tests.test_image_agent import run as test_image_agent
-# test_image_agent(streamer)
-# print("\n------------------------\n")
+# Test the Image Agent
+from tests.test_image_agent import run as test_image_agent
+test_image_agent(streamer)
+print("\n------------------------\n")
 
 # # Test the Code Function
 # from tests.test_code_function import run as test_code_function

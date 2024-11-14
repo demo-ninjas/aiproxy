@@ -45,7 +45,10 @@ class AnalyseImageAgent(Agent):
         ## If the msg is bytes, then base64 it, otherwise assume it's already base64'd
         if isinstance(message, bytes):
             return self.process_native_image(message, context)
-           
+        elif isinstance(message, list):
+            return self.process_image_list(message, context)
+        
+
         # Check with the context if the it knows the extension of the image
         img_ext = context.get_metadata("image-extension") or context.get_metadata("file-extension") or self._default_image_extension
     
@@ -72,13 +75,14 @@ class AnalyseImageAgent(Agent):
 
         return response
     
+
     def process_native_image(self, message:bytes, context:ChatContext) -> ChatResponse: 
         import io
         import base64
         import math
 
         content = []
-        if context.get_metadata('slice-image', 'true') == 'true':
+        if isinstance(message, bytes) and context.get_metadata('slice-image', 'true') == 'true':
             ## Load the image
             image = Image.open(io.BytesIO(message))
             
@@ -161,6 +165,42 @@ class AnalyseImageAgent(Agent):
             })
 
 
+
+        # Send message to the proxy
+        img_msg = ChatMessage(
+            role="user", 
+            content=content,
+        )
+        context.add_message_to_history(img_msg)
+        response = self.proxy.send_message(None, context, override_model=self._custom_model, override_system_prompt=self._custom_system_prompt, function_filter=self._function_filter)
+        # If the agent is using an isolated thread, store the thread-id for use later 
+        if self._thread_isolated:
+            self._isolated_thread_id = context.thread_id
+
+        return response
+    
+
+    def process_image_list(self, message:list[bytes], context:ChatContext) -> ChatResponse: 
+        import base64
+        content = []
+
+        # Check with the context if the it knows the extension of the image
+        img_ext = context.get_metadata("image-extension") or context.get_metadata("file-extension") or self._default_image_extension
+        # img_ext = context.get_metadata("image-extension", self._default_image_extension)
+        for img in message:
+            img_str = base64.b64encode(img).decode()
+            content.append({
+                "type": "image_url",
+                "image_url": {
+                    "url": f'data:image/{img_ext};base64,{img_str}',
+                    "detail": "high"
+                }
+            })
+
+        content.append({
+            "type": "text",
+            "text": self._analyse_prompt or 'Process these video frames'
+        })
 
         # Send message to the proxy
         img_msg = ChatMessage(
