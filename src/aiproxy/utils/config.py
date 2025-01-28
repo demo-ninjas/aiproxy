@@ -99,6 +99,13 @@ def apply_replacements(config_item:any, raise_if_not_found:bool = True, use_cach
                 return load_text_file(config_item[1:])
             else: 
                 break   ## If no replacements were made, break out of the while loop
+    elif hasattr(config_item, '__dict__'):
+        apply_replacements(config_item.__dict__, raise_if_not_found, use_cache)
+    else: 
+        return config_item
+
+
+
     
 
 def load_text_file(file_path:str) -> str:
