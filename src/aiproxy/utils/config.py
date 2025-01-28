@@ -72,9 +72,12 @@ def apply_replacements(config_item:any, raise_if_not_found:bool = True, use_cach
     if type(config_item) == dict: # If it's a dictionary, go through each key and apply replacements to the value (and it's children)
         for k,v in config_item.items():
             if type(v) == str:  ## If the value is a string, apply replacements
-                while True:
+                max_loops = 10
+                loop = 0
+                while loop < max_loops:
+                    loop += 1
                     if v.startswith("$"):
-                        config_item[k] = os.environ.get(v[1:], v)
+                        config_item[k] = os.environ.get(v[1:], v[1:])
                     elif v.startswith("@"):
                         config_item[k] = load_named_config(v[1:], raise_if_not_found, use_cache)
                     elif v.startswith("!"):
@@ -92,10 +95,13 @@ def apply_replacements(config_item:any, raise_if_not_found:bool = True, use_cach
         for i in range(len(config_item)):
             apply_replacements(config_item[i], raise_if_not_found, use_cache)
     elif type(config_item) == str: # If it's a string, apply replacements
-        while True: 
+        max_loops = 10
+        loop = 0
+        while loop < max_loops:
+            loop += 1
             original_config_item = config_item
             if config_item.startswith("$"):
-                config_item = os.environ.get(config_item[1:], config_item)
+                config_item = os.environ.get(config_item[1:], config_item[1:])
             elif config_item.startswith("@"):
                 config_item = load_named_config(config_item[1:], raise_if_not_found, use_cache)
             elif config_item.startswith("!"):
