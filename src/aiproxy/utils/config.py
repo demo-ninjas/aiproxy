@@ -81,6 +81,8 @@ def apply_replacements(config_item:any, raise_if_not_found:bool = True, use_cach
                         config_item[k] = load_text_file(v[1:])
                     else: 
                         break   ## If no replacements were made, break out of the while loop
+                    if config_item[k] == v:
+                        break
             elif type(v) == list:    ## If the value is a list, apply replacements to each item in the list
                 for i in range(len(v)):
                     apply_replacements(v[i], raise_if_not_found, use_cache)
@@ -91,14 +93,18 @@ def apply_replacements(config_item:any, raise_if_not_found:bool = True, use_cach
             apply_replacements(config_item[i], raise_if_not_found, use_cache)
     elif type(config_item) == str: # If it's a string, apply replacements
         while True: 
+            original_config_item = config_item
             if config_item.startswith("$"):
-                return os.environ.get(config_item[1:], config_item)
+                config_item = os.environ.get(config_item[1:], config_item)
             elif config_item.startswith("@"):
-                return load_named_config(config_item[1:], raise_if_not_found, use_cache)
+                config_item = load_named_config(config_item[1:], raise_if_not_found, use_cache)
             elif config_item.startswith("!"):
-                return load_text_file(config_item[1:])
+                config_item = load_text_file(config_item[1:])
             else: 
                 break   ## If no replacements were made, break out of the while loop
+            if config_item == original_config_item:
+                break
+        return config_item
     elif hasattr(config_item, '__dict__'):
         apply_replacements(config_item.__dict__, raise_if_not_found, use_cache)
     else: 
