@@ -9,7 +9,7 @@ class CosmosDBConfig:
     connection_string:str = None
 
     def load_config(config_name:str) -> 'CosmosDBConfig': 
-        from aiproxy.utils.config import load_named_config
+        from aiproxy.utils.config import load_named_config, apply_replacements
         
         if config_name is None or config_name.upper() == ROOT_CONFIG_NAME:
             return CosmosDBConfig.__load_root_config()
@@ -39,6 +39,7 @@ class CosmosDBConfig:
         if config.connection_string is None or config.connection_string.upper() == "DEFAULT":
             config.connection_string = CosmosDBConfig.__root_connection_string()
 
+        apply_replacements(config, False, True)
         config.__validate()
         return config
     
