@@ -1,4 +1,4 @@
-from aiproxy.utils.config import load_named_config
+from aiproxy.utils.config import load_named_config, apply_replacements
 ROOT_CONFIG_NAME = "ROOT"
 
 class AzureSearchVectorFieldConfig:
@@ -71,6 +71,7 @@ class AzureSearchConfig:
                     if field is not None:
                         config.vector_fields.append(AzureSearchVectorFieldConfig(field, dim, knn))
 
+        apply_replacements(config, False, True)
         config.__validate()
         return config
     
@@ -97,6 +98,7 @@ class AzureSearchConfig:
         config.semantic_config = AzureSearchConfig.__root_semantic_config()
         config.scoring_profile = AzureSearchConfig.__root_scoring_profile()
         config.vector_fields = AzureSearchConfig.__root_vector_fields()
+        apply_replacements(config, False, True)
         config.__validate()
         return config
     
