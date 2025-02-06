@@ -172,7 +172,8 @@ def _inner_object_update(obj:any, field:str, value:any = None) -> any:
 
         if type(obj) is list: 
             ## Build an array of the field for each item in the list
-            obj = [item.get(field_name, None) for item in obj]
+            obj = [item.get(field_name, None) if item is not None else None for item in obj]
+            obj = [item for item in obj if item is not None]
         else:
             if type(obj) is str:
                 try: 
