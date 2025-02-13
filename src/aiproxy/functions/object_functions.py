@@ -85,9 +85,9 @@ def filter_array(
         return matches[:count]
 
 def set_obj_field(
-        obj:Annotated[any, "The object to set the value of the field on"],
-        field:Annotated[str, "A string describing which  field to set the value of. This could be a field name, a list index (using square brackets - eg. '[0]' extracts the first item in a list), or a combination using dot notation (eg. 'records[0].name' will return the name of the first item in a list of records)"],
-        value:Annotated[any, "The value to set the field to"],
+        obj:Annotated[any, "The object to set the value of the field on"] = None,
+        field:Annotated[str, "A string describing which  field to set the value of. This could be a field name, a list index (using square brackets - eg. '[0]' extracts the first item in a list), or a combination using dot notation (eg. 'records[0].name' will return the name of the first item in a list of records)"] = None,
+        value:Annotated[any, "The value to set the field to"] = None,
     ) -> any:
     """
     Sets the value of the specified field within the given object
@@ -96,8 +96,8 @@ def set_obj_field(
 
 
 def get_obj_field(
-        obj:Annotated[any, "The object to extract from"],
-        field:Annotated[str, "A string describing the part of the object to extract. This could be a field name, a list index (using square brackets - eg. '[0]' extracts the first item in a list), or a combination using dot notation (eg. 'records[0].name' will return the name of the first item in a list of records)"],
+        obj:Annotated[any, "The object to extract from"] = None,
+        field:Annotated[str, "A string describing the part of the object to extract. This could be a field name, a list index (using square brackets - eg. '[0]' extracts the first item in a list), or a combination using dot notation (eg. 'records[0].name' will return the name of the first item in a list of records)"] = None,
     ) -> any:
     """
     Extract a part of an object as described by the field argument

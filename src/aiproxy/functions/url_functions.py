@@ -27,6 +27,28 @@ def load_url(
     
     return response if response is not None else "No Response"
 
+def load_json_url(
+        url:Annotated[str, "The URL to load the response for"], 
+        method:Annotated[str, "The HTTP method to use (GET, POST, PUT, DELETE, etc.)"] = "GET", 
+        headers: dict[str,str] = None, 
+        query_params: Annotated[dict[str,str], "Any Query Parameters to add to the URL"]  = None,
+        body: str = None,
+        response_field:Annotated[str, "The field in the JSON response to return (eg. 'response' will return the response field from the result JSON). You can use the dot notation to retrieve sub fields (eg. 'response.data' will return the data field from within response)"] = None
+        ) -> dict:
+    result = load_url(url, method, headers, query_params, body)
+    if result is None or len(result) == 0:
+        return None
+    import json
+    from aiproxy.functions.object_functions import get_obj_field
+    try: 
+        data = json.loads(result)
+        if response_field is not None:
+            data = get_obj_field(data, response_field)
+        return data
+    except Exception as e:
+        return None
+    
+    
 def load_url_response(
         url:Annotated[str, "The URL to load the response for"], 
         method:Annotated[str, "The HTTP method to use (GET, POST, PUT, DELETE, etc.)"] = "GET", 
@@ -63,3 +85,4 @@ def load_url_response(
 def register_functions():
     from .function_registry import GLOBAL_FUNCTIONS_REGISTRY
     GLOBAL_FUNCTIONS_REGISTRY.register_base_function("load_url", "Retrieves the response from loading the specified url", load_url)
+    GLOBAL_FUNCTIONS_REGISTRY.register_base_function("load_json_url", "Retrieves the JSON response from loading the specified url, optionally returning only a subset of the response data", load_json_url)
