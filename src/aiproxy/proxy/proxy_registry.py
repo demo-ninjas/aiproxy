@@ -43,11 +43,21 @@ class ProxyRegistry:
                 if config is not None: 
                     name_or_config = config
 
-        if name_or_config is not None and type(name_or_config) is not str:
+        if name_or_config is not None and type(name_or_config) is not str and hasattr(name_or_config, 'name'):
             proxy = self.get_proxy(name_or_config.name)
+        if name_or_config is not None and type(name_or_config) is dict:
+            from aiproxy.data import ChatConfig
+            proxy = self.get_proxy(ChatConfig.load(name_or_config))
         if proxy is None:
             proxy = proxy_type(name_or_config, **kwargs)
-            self.add_proxy(name_or_config.name if name_or_config is not None else str(proxy_type), proxy)
+            name = None
+            if type(name_or_config) is str:
+                name = name_or_config
+            if hasattr(name_or_config, 'name'):
+                name = name_or_config.name
+            if name is None:
+                name = str(proxy_type)
+            self.add_proxy(name, proxy)
 
         if proxy is not None and type(proxy) is not proxy_type:
             raise Exception(f"Proxy loaded with name {name_or_config.name} is not of the correct type")
