@@ -262,7 +262,8 @@ The recent messages in the conversation are provided below between [RECENT_MESSA
 """
 
 class StepPlanOrchestrator(AbstractProxy):
-    _proxy:CompletionsProxy = None
+    _planner_proxy:CompletionsProxy = None
+    _responder_proxy:CompletionsProxy = None
 
     def __init__(self, config:ChatConfig):
         super().__init__(config)
@@ -274,7 +275,8 @@ class StepPlanOrchestrator(AbstractProxy):
         self._functions = self._build_available_functions()
         self._planner_model = self._config['planner-model'] or self._config['model'] or None
         self._responder_model = self._config['responder-model'] or self._config['model'] or None
-        self._proxy = GLOBAL_PROXIES_REGISTRY.load_proxy(self._config['planner-proxy'], CompletionsProxy)
+        self._planner_proxy = GLOBAL_PROXIES_REGISTRY.load_proxy(self._config['planner-proxy'], CompletionsProxy)
+        self._responder_proxy = GLOBAL_PROXIES_REGISTRY.load_proxy(self._config['responder-proxy'], CompletionsProxy)
         self._include_step_names_in_result = self._config.get('include-step-names-in-result', True)
         self._include_step_args_in_result = self._config.get('include-step-args-in-result', True)
         self._final_response_template = self._config.get('final-response-template', GENERATE_FINAL_RESPONSE_TEMPLATE)
@@ -332,7 +334,7 @@ class StepPlanOrchestrator(AbstractProxy):
         recent_conversation = self._build_recent_conversation(context)
 
         ## Parse the Preamble as a Prompt Template
-        preamble_to_use = self._proxy._parse_prompt_template(self._preamble, context) if self._preamble else ''
+        preamble_to_use = self._planner_proxy._parse_prompt_template(self._preamble, context) if self._preamble else ''
         prompt = STEP_PLAN_PROMPT_TEMPLATE.format(
             preamble=preamble_to_use,
             rules=self._rules,
@@ -342,7 +344,7 @@ class StepPlanOrchestrator(AbstractProxy):
         )
         context.push_stream_update("Planning out how to respond...", PROGRESS_UPDATE_MESSAGE)
         if working_notifier is not None: working_notifier()
-        plan_result = self._proxy.send_message(prompt, planner_ctx, self._planner_model, use_functions=False)
+        plan_result = self._planner_proxy.send_message(prompt, planner_ctx, self._planner_model, use_functions=False)
 
         ## Run the Step Plan to completion
         steps, step_results = self.evaluate_step_plan(message, context, working_notifier, planner_ctx, plan_result)
@@ -449,7 +451,7 @@ class StepPlanOrchestrator(AbstractProxy):
                         preamble="The 'generate_final_response' step was included multiple times. This is not allowed, you can only include it once, and when included, it must be the last step of the plan."
                     )
             function_filter = lambda x,y: x in ['get_dict_val', 'filter_list', 'get_obj_field', 'random_choice', 'merge_lists', 'run_code', 'calculate-maths-expression']
-            updated_plan_result = self._proxy.send_message(prompt, planner_ctx, self._planner_model, use_functions=True, function_filter=function_filter)
+            updated_plan_result = self._planner_proxy.send_message(prompt, planner_ctx, self._planner_model, use_functions=True, function_filter=function_filter)
             new_steps = self.validate_step_plan(original_prompt, updated_plan_result)
             executed_steps = [ x for x in steps if x.get('executed', False) ]
             full_step_list = executed_steps + new_steps
@@ -512,7 +514,7 @@ class StepPlanOrchestrator(AbstractProxy):
                     )
 
                     function_filter = lambda x,y: x in ['get_dict_val', 'filter_list', 'get_obj_field', 'random_choice', 'merge_lists', 'run_code', 'calculate-maths-expression']
-                    updated_plan_result = self._proxy.send_message(prompt, planner_ctx, self._planner_model, use_functions=True, function_filter=function_filter)
+                    updated_plan_result = self._planner_proxy.send_message(prompt, planner_ctx, self._planner_model, use_functions=True, function_filter=function_filter)
                     new_steps = self.validate_step_plan(original_prompt, updated_plan_result)
                     executed_steps = [ x for x in steps if x.get('executed', False) ]
                     full_step_list = executed_steps + new_steps
@@ -588,7 +590,7 @@ class StepPlanOrchestrator(AbstractProxy):
                     )
 
                     function_filter = lambda x,y: x in ['get_dict_val', 'filter_list', 'get_obj_field', 'random_choice', 'merge_lists', 'run_code', 'calculate-maths-expression']
-                    updated_plan_result = self._proxy.send_message(prompt, planner_ctx, self._planner_model, use_functions=True, function_filter=function_filter)
+                    updated_plan_result = self._planner_proxy.send_message(prompt, planner_ctx, self._planner_model, use_functions=True, function_filter=function_filter)
                     new_steps = self.validate_step_plan(original_prompt, updated_plan_result)
                     executed_steps = [ x for x in steps if x.get('executed', False) ]
                     full_step_list = executed_steps + new_steps
@@ -827,7 +829,7 @@ class StepPlanOrchestrator(AbstractProxy):
                         var_str = var_str[:1000] + "...truncated [use 'get_dict_val({ \"key\":\"" + output_var + "\")' to retrieve whole value]..."
                     step_outcomes += f"\nStep: {step.get('name')} [Variable: {output_var}]\n{var_str}\n"
 
-        preamble_to_use = self._proxy._parse_prompt_template(self._responder_preamble, context) if self._responder_preamble else ''
+        preamble_to_use = self._responder_proxy._parse_prompt_template(self._responder_preamble, context) if self._responder_preamble else ''
         prompt = self._final_response_template.format(
             preamble=preamble_to_use or '',
             user_prompt=original_prompt,
@@ -873,7 +875,7 @@ class StepPlanOrchestrator(AbstractProxy):
         try:
             if is_structured_resp:
                 resp_context.stream_paused = True
-            result = self._proxy.send_message(prompt, resp_context, self._responder_model, use_functions=True, function_filter=lambda x,y: x in ['get_dict_val', 'filter_list', 'get_obj_field', 'random_choice', 'merge_lists', 'run_code', 'calculate-maths-expression'], use_completions_data_source_extensions=False)
+            result = self._responder_proxy.send_message(prompt, resp_context, self._responder_model, use_functions=True, function_filter=lambda x,y: x in ['get_dict_val', 'filter_list', 'get_obj_field', 'random_choice', 'merge_lists', 'run_code', 'calculate-maths-expression'], use_completions_data_source_extensions=False)
         finally:
             resp_context.stream_paused = original_stream_state
 

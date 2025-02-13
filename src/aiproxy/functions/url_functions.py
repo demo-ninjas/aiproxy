@@ -4,12 +4,13 @@ def load_url(
         url:Annotated[str, "The URL to load the response for"], 
         method:Annotated[str, "The HTTP method to use (GET, POST, PUT, DELETE, etc.)"] = "GET", 
         headers: dict[str,str] = None, 
+        query_params: Annotated[dict[str,str], "Any Query Parameters to add to the URL"]  = None,
         body: str = None
         ) -> str:
     """
     Retrieves the response from loading the specified url
     """
-    status, response = load_url_response(url, method, headers, body)
+    status, response = load_url_response(url, method, headers, query_params, body)
     if status != 200:
         if status == 404:
             return f"The URL was not found"
@@ -30,6 +31,7 @@ def load_url_response(
         url:Annotated[str, "The URL to load the response for"], 
         method:Annotated[str, "The HTTP method to use (GET, POST, PUT, DELETE, etc.)"] = "GET", 
         headers: dict[str,str] = None, 
+        query_params: dict[str,str] = None,
         body: str = None
         ) -> Tuple[int, str]:
     """
@@ -37,6 +39,14 @@ def load_url_response(
     """
     import requests
     method= method.upper()
+
+    if query_params is not None:
+        if "?" in url:
+            url += "&"
+        else:
+            url += "?"
+        url += "&".join([f"{k}={v}" for k,v in query_params.items()])
+
     response = None
     if method == "POST":
         response = requests.post(url, headers=headers, data=body)
