@@ -381,6 +381,13 @@ class StepPlanOrchestrator(AbstractProxy):
                 metadata_steps.append(step_desc)
             plan_result.metadata['steps'] = metadata_steps
 
+        ## Add result-metadata to the result
+        for step in steps:
+            if not step.get('executed'):
+                continue
+            if 'response-metadata' in step:
+                plan_result.metadata.update(step['response-metadata'])
+                
         ## Add the original message to the context
         context.add_prompt_to_history(message, 'user')
         ## Add the result to the context
@@ -491,7 +498,7 @@ class StepPlanOrchestrator(AbstractProxy):
 
                 if func_name == 'generate_final_response':
                     step_progression_state = "Failed when generating the final response - perhaps the generated response was too long?"
-                    result = self.generate_final_response(original_prompt, 
+                    result, metadata = self.generate_final_response(original_prompt, 
                                                             resopnse_type=self._final_response_type,
                                                             data=func_args.get('data'),
                                                             intent=func_args.get('intent'), 
@@ -499,6 +506,9 @@ class StepPlanOrchestrator(AbstractProxy):
                                                             vars=context_map,
                                                             steps=steps,
                                                             context=prompt_context)
+                    if metadata:
+                        step["response-metadata"] = metadata
+
                 elif func_name == 're-evaluate-plan':
                     step_progression_state = "Failed to request a re-evaluation of the plan"
                     ## Send a message to the planner to re-evaluate the plan given the current state of the context + plan
@@ -528,7 +538,7 @@ class StepPlanOrchestrator(AbstractProxy):
                     func_def = GLOBAL_FUNCTIONS_REGISTRY[func_name]
                     if not func_def:
                         if func_name == 'generate_final_response':
-                            result = self.generate_final_response(original_prompt, 
+                            result, metadata = self.generate_final_response(original_prompt, 
                                                         resopnse_type=self._final_response_type,
                                                         data=func_args.get('data'),
                                                         intent=func_args.get('intent'), 
@@ -536,6 +546,8 @@ class StepPlanOrchestrator(AbstractProxy):
                                                         vars=context_map,
                                                         steps=steps,
                                                         context=prompt_context)
+                            if metadata:
+                                step["response-metadata"] = metadata
                         else: 
                             step_progression_state = "The function for this step was not found in the global functions registry"
                             raise ValueError(f"Function {func_name} not found in the global functions registry")
@@ -798,7 +810,7 @@ class StepPlanOrchestrator(AbstractProxy):
         vars:dict = None,
         steps:list[dict] = None,
         context:ChatContext = None
-    ) -> str:
+    ) -> tuple[str, dict]:
         
         # Recent Messages
         recent_conversation = self._build_recent_conversation(context)
@@ -880,9 +892,9 @@ class StepPlanOrchestrator(AbstractProxy):
             resp_context.stream_paused = original_stream_state
 
         if result.filtered:
-            return f"Sorry, I can't respond to that."
+            return f"Sorry, I can't respond to that.", None
         elif result.failed:
-            return f"Sorry, I couldn't generate a response due to an error"        
+            return f"Sorry, I couldn't generate a response due to an error", None
         
 
         ## If the response-type is a structured response, then we need to return the structured response
@@ -890,4 +902,10 @@ class StepPlanOrchestrator(AbstractProxy):
             from aiproxy.functions.string_functions import extract_code_block_from_markdown
             return extract_code_block_from_markdown(result.message, return_original_if_not_found=True)
 
-        return result.message
+        metadata = None
+        if result.metadata is not None:
+            # Add the metadata to the step
+            # remove any field prefixed with a "_"
+            metadata = { k:v for k,v in result.metadata.items() if not k.startswith("_") }
+
+        return result.message, metadata
