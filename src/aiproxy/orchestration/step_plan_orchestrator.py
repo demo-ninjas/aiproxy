@@ -896,16 +896,15 @@ class StepPlanOrchestrator(AbstractProxy):
         elif result.failed:
             return f"Sorry, I couldn't generate a response due to an error", None
         
-
-        ## If the response-type is a structured response, then we need to return the structured response
-        if is_structured_resp:
-            from aiproxy.functions.string_functions import extract_code_block_from_markdown
-            return extract_code_block_from_markdown(result.message, return_original_if_not_found=True)
-
         metadata = None
         if result.metadata is not None:
             # Add the metadata to the step
             # remove any field prefixed with a "_"
             metadata = { k:v for k,v in result.metadata.items() if not k.startswith("_") }
+
+        ## If the response-type is a structured response, then we need to return the structured response
+        if is_structured_resp:
+            from aiproxy.functions.string_functions import extract_code_block_from_markdown
+            return extract_code_block_from_markdown(result.message, return_original_if_not_found=True), metadata
 
         return result.message, metadata
