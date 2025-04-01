@@ -86,7 +86,8 @@ CARRY_OVER_TEMPLATE = """Your name is: {AGENT_NAME}
 ALWAYS Reply in the following format: 
 
 [Your Name]
-Your Response
+{{Your Response}}
+
 
 If you have no further contributions to make, or you believe the goal of the user prompt has been achieved, then please respond only with your name and a response of "COMPLETE".
 """
@@ -122,12 +123,12 @@ Use Markdown format.
 """
 
 SUMMARY_TEMPLATE = """
-Your role is to provide a succinct description of the outcome / consensus of the conversation between the agents.
+Your role is to provide a succinct response to the prompt, based on the outcome / consensus of the conversation between the agents.
 The agents have worked together to achieve the goal of the user prompt, and you are to provide a response to the user, based on your interpretation of the outcome/consensus of the conversation.
 
-You do not need to summarise everything that happened in the conversation, but you should provide a summary of the key points and the outcome of the conversation.
+You do not need to say everything that happened in the agent conversation, but you do need to respond appropriately to the user (the user will not be able to see the agent conversation).
 
-If the conversation includes an agreed upon answer to a question posed by the user, you should include that in your summary (eg. a some code, or a crafted paragraph of text).
+If the conversation includes an agreed upon answer to a question posed by the user, you should include that in your response (eg. some code, a crafted paragraph of text, a specific answer, etc...).
 
 You must reply in friendly conversational English, using markdown format.
 
@@ -182,6 +183,9 @@ class ConsensusOrchestrator(AbstractProxy):
     _summary_template:str = None
 
     _max_turns:int = 20
+    _min_agent_responses:int = 0    ## If 0, then use half the number of agents
+    _all_agents_must_respond_first_time:bool = False
+    _include_interim_responses:bool = False
     _summary_rules:str = None
 
     def __init__(self, config: ChatConfig | str) -> None:
@@ -198,6 +202,10 @@ class ConsensusOrchestrator(AbstractProxy):
 
         self._max_turns = int(self._config.get("max-turns", 20))
         self._summary_rules = self._config.get("summary-rules", "")
+        self._min_agent_responses = int(self._config.get("min-agent-responses", 0))
+        self._all_agents_must_respond_first_time = bool(self._config.get("all-agents-must-respond-first-time", False))
+        self._include_interim_responses = bool(self._config.get("include-interim-responses", False))
+
         
     def _load_agent_config(self): 
         self._agents = []
@@ -269,8 +277,20 @@ class ConsensusOrchestrator(AbstractProxy):
         ## Build the Agent List String for use in prompts
         agent_list_str = self._build_agent_list_str(agents)
         agent_count = len(agents)
-        half_agent_count = agent_count // 2
         max_turns = context.get_metadata("max_turns") or self._max_turns
+        half_agent_count = agent_count // 2 if agent_count > 3 else agent_count - 1
+        if half_agent_count < 1: half_agent_count = 1
+
+        ## Check if we meet the minimum number of agent responses
+        min_agent_responses = context.get_metadata("min_agent_responses") or self._min_agent_responses
+        if min_agent_responses > half_agent_count: 
+            half_agent_count = min_agent_responses
+
+        ## Check if we need to force all agents to respond first time
+        all_agents_must_respond_first_time = context.get_metadata("all_agents_must_respond_first_time") or self._all_agents_must_respond_first_time
+        
+        include_interim_responses = context.get_metadata("include_interim_responses") if 'include_interim_responses' in context.metadata else self._include_interim_responses
+
 
         ## Setup the conversation context
         context.init_history()  ## Ensure the history has been loaded
@@ -286,6 +306,37 @@ class ConsensusOrchestrator(AbstractProxy):
         context.set_metadata("linked-conversation", conversation_context.thread_id)
         conversation_context.add_prompt_to_history(message, 'user')
 
+        if all_agents_must_respond_first_time and len(conversation_so_far) == 0:
+            ## Ask all agents to respond first time
+            ## Call all the agents in parallel, keeping track of the futures
+            resp_futures = []
+            # Create executor to run agents in parallel
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                for agent in agents:
+                    # Create a new Thread for each agent
+                    agent_context = conversation_context.clone_for_thread_isolation(thread_id_to_use=context.get_metadata('linked-conversation'))
+                    agent_context.init_history()
+                    agent_context.set_metadata("linked-conversation", conversation_context.thread_id)
+                    agent_context.add_prompt_to_history(f"""The user has posed the prompt below to start the conversation: 
+                    {message}""", 'user')
+                    
+                    agent_nudge = f"""Please provide your first contribution to the conversation, considering the prompt posed by the user."""
+                    agent_prompt = self._carry_over_template.format(NUDGE=agent_nudge, AGENT_NAME=agent.name)
+                    future = executor.submit(agent.process_message, agent_prompt, agent_context)
+                    resp_futures.append((agent, future))
+            
+            # Wait for all futures to complete
+            for agent, future in resp_futures:
+                if working_notifier is not None: working_notifier()
+                context.push_stream_update(f"{agent.name} is providing an initial response", "step")
+                agent_resp = future.result()
+                if agent_resp is None:
+                    agent_resp = ChatResponse()
+                    agent_resp.message = f"{agent.name}:\nI have nothing to add to this conversation"
+                conversation_so_far.append((agent, agent_resp))
+
+
         question_back_to_user:str = None
         conversation_complete = False
         turn = 0
@@ -293,7 +344,6 @@ class ConsensusOrchestrator(AbstractProxy):
             turn += 1
             if turn > max_turns:
                 break
-            
             
             ## Step 1: Ask the Coordinator to select an agent or complete the conversation
             if working_notifier is not None: working_notifier()
@@ -303,7 +353,11 @@ class ConsensusOrchestrator(AbstractProxy):
 
             ## Step 2: Check the response from the coordinator
             if coordinator_resp is None:
-                return ChatResponse(message="Coordinator did not provide a response")
+                resp = ChatResponse()
+                resp.message = "Coordinator did not provide a response"
+                resp.failed = True
+                resp.error = "Coordinator did not provide a response"
+                return resp
             elif coordinator_resp.message.lower().strip() == "complete":
                 conversation_complete = True
                 context.push_stream_update("Coordinator is satisfied that prompt has been fulfilled", "step")
@@ -323,7 +377,11 @@ class ConsensusOrchestrator(AbstractProxy):
                         agent = a
                         break
                 if agent is None:
-                    return ChatResponse(message=f"Agent {agent_name} not found in the list of agents")
+                    resp = ChatResponse()
+                    resp.message = f"Coordinator specified agent {agent_name} not found in the list of agents"
+                    resp.failed = True
+                    resp.error = f"Coordinator specified agent {agent_name} not found in the list of agents"
+                    return resp
                 
                 ## Step 3: Ask the selected agent to speak
                 context.push_stream_update(f"{agent.name} is now speaking", "step")
@@ -332,7 +390,8 @@ class ConsensusOrchestrator(AbstractProxy):
                 agent_prompt = self._carry_over_template.format(NUDGE=agent_nudge, AGENT_NAME=agent.name)
                 agent_resp = agent.process_message(agent_prompt, conversation_context)
                 if agent_resp is None: 
-                    agent_resp = ChatResponse(message=f"{agent.name}:\nI have nothing to add to this conversation")
+                    agent_resp = ChatResponse()
+                    agent_resp.message = f"{agent.name}:\nI have nothing to add to this conversation"
                 
                 ## Step 4: Add the agent response to the conversation
                 conversation_so_far.append((agent, agent_resp))
@@ -356,6 +415,14 @@ class ConsensusOrchestrator(AbstractProxy):
         else:
             summary_resp.add_metadata('participants', [a.name for a,m in conversation_so_far])
             summary_resp.add_metadata('turns', turn)
+
+            if include_interim_responses:
+                int_resps = []
+                for agent, resp in conversation_so_far:
+                    if resp is not None and resp.message is not None:
+                        int_resps.append(f"{resp.message}")
+                summary_resp.add_metadata('interim_responses', int_resps)
+
             context.add_prompt_to_history(message, 'user')
             context.add_response_to_history(summary_resp)
             context.save_history()

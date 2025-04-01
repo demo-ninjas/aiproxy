@@ -90,17 +90,27 @@ import tests
 # print("\n------------------------\n")
 
 # ## Test a configured Step Plan Orchestrator
-# from tests.test_configured_orchestrator import run as test_configured_orchestrator
+# from tests.test_configured_step_plan_orchestrator import run as test_configured_orchestrator
 # test_configured_orchestrator(streamer)
 # print("\n------------------------\n")
 
-# Test the Image Agent
-from tests.test_image_agent import run as test_image_agent
-test_image_agent(streamer)
+## Test a configured Step Plan Orchestrator
+from tests.test_configured_consensus_orchestrator import run as test_configured_consensus_orchestrator
+test_configured_consensus_orchestrator(streamer)
 print("\n------------------------\n")
+
+# Test the Image Agent
+# from tests.test_image_agent import run as test_image_agent
+# test_image_agent(streamer)
+# print("\n------------------------\n")
 
 # # Test the Code Function
 # from tests.test_code_function import run as test_code_function
 # test_code_function(streamer)
 # print("\n------------------------\n")
 
+
+# # Test the URL Load Function
+# from tests.test_url_load import run as test_url_load
+# test_url_load(streamer)
+# print("\n------------------------\n")
