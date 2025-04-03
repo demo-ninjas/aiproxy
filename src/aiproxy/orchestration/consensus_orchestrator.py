@@ -15,6 +15,8 @@ Your role is to pass the state of the conversation between the agents, guiding t
 Before deciding that the agents have achieved the goal of the user prompt, ensure that the majority of agents have agreed (or passed on participating) that the goal has been achieved before you can decide to end the conversation.
 There are {AGENT_COUNT} agents in this chat, so you must have contributions from at least half of the agents (aka. at least {HALF_AGENT_COUNT} agents) before you decide that the goal has been achieved.
 
+{RULES}
+
 You are to respond with one of two responses: 
 
 1. AGENT:Agent Name:Prompt to the agent to continue the conversation
@@ -178,6 +180,7 @@ class ConsensusOrchestrator(AbstractProxy):
 
     _carry_over_template:str = None
     _coordinator_template:str = None
+    _coordinator_rules:str = None
     _introduction_template:str = None
     _question_template:str = None
     _summary_template:str = None
@@ -196,6 +199,7 @@ class ConsensusOrchestrator(AbstractProxy):
         
         self._carry_over_template = self._config.get("carry-over-template", CARRY_OVER_TEMPLATE)
         self._coordinator_template = self._config.get("coordinator-template", DEFAULT_COORDINATOR_PROMPT)
+        self._coordinator_rules = self._config.get("coordinator-rules", "")
         self._introduction_template = self._config.get("intro-template", INTRODUCTION_TEMPLATE)
         self._question_template = self._config.get("question-template", QUESTION_TEMPLATE)
         self._summary_template = self._config.get("summary-template", SUMMARY_TEMPLATE)
@@ -348,7 +352,7 @@ class ConsensusOrchestrator(AbstractProxy):
             ## Step 1: Ask the Coordinator to select an agent or complete the conversation
             if working_notifier is not None: working_notifier()
             context.push_stream_update("Checking in with the consensus co-ordinator", "step")
-            coordinator_prompt = self._coordinator_template.format(HALF_AGENT_COUNT=half_agent_count, AGENT_COUNT=agent_count, AGENT_LIST=agent_list_str, USER_PROMPT=message, AGENT_RESPONSES=self.build_agent_responses_str(conversation_so_far))
+            coordinator_prompt = self._coordinator_template.format(RULES=self._coordinator_rules, HALF_AGENT_COUNT=half_agent_count, AGENT_COUNT=agent_count, AGENT_LIST=agent_list_str, USER_PROMPT=message, AGENT_RESPONSES=self.build_agent_responses_str(conversation_so_far))
             coordinator_resp = self._coordinator.process_message(coordinator_prompt, context.clone_for_single_shot())
 
             ## Step 2: Check the response from the coordinator
