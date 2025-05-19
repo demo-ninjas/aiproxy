@@ -12,3 +12,5 @@ pillow
 markdownify
 beautifulsoup4
 RestrictedPython
+pandas
+numpy

@@ -99,11 +99,33 @@ def _build_safe_globals() -> dict:
     from RestrictedPython.Eval import default_guarded_getattr, default_guarded_getitem, default_guarded_getiter
     from RestrictedPython.PrintCollector import PrintCollector
     import statistics
+    import bs4
+    import json
+    import re
+    import datetime
+    import requests
+    import urllib
+    import pandas
+    import numpy
+    import math
+
     allowed_globals = {}
     allowed_globals.update(safe_globals.get('__builtins__'))
     allowed_globals.update(utility_builtins)
     allowed_globals.update(safe_builtins)
     allowed_globals.update({ "statistics": statistics })
+    allowed_globals.update({ "bs4": bs4 })
+    allowed_globals.update({ "json": json })
+    allowed_globals.update({ "re": re })
+    allowed_globals.update({ "datetime": datetime })
+    allowed_globals.update({ "requests": requests })
+    allowed_globals.update({ "urllib": urllib })
+    allowed_globals.update({ "pd": pandas })
+    allowed_globals.update({ "np": numpy })
+    allowed_globals.update({ "pandas": pandas })
+    allowed_globals.update({ "numpy": numpy })
+    allowed_globals.update({ "math": math })
+    allowed_globals.update({ "abs": abs })
     allowed_globals.update({ "min": min })
     allowed_globals.update({ "max": max })
     allowed_globals.update({ "sum": sum })
@@ -121,5 +143,5 @@ def _build_safe_globals() -> dict:
 
 def register_functions():
     from .function_registry import GLOBAL_FUNCTIONS_REGISTRY
-    GLOBAL_FUNCTIONS_REGISTRY.register_base_function("run_code", "Compiles the provided python code and executes the specified function, returning the result. The function signature must include a single parameter called 'data', eg. def myfunc(data)", run_code)
-    GLOBAL_FUNCTIONS_REGISTRY.register_base_function("eval_code", "Compiles the provided python statement and executes it, returning the result", eval_code)
+    GLOBAL_FUNCTIONS_REGISTRY.register_base_function("run_code", "Compiles the provided python code and executes the specified function, returning the result. The function signature must include a single parameter called 'data', eg. def myfunc(data). The following libraries are provided: bs4, requests, pandas, numpy, statistics, json, re, datetime, urllib, math", run_code)
+    GLOBAL_FUNCTIONS_REGISTRY.register_base_function("eval_code", "Compiles the provided python statement and executes it, returning the result. The following libraries are provided: bs4, requests, pandas, numpy, statistics, json, re, datetime, urllib, math", eval_code)
