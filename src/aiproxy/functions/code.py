@@ -28,6 +28,7 @@ def run_code(code:Annotated[str, "The python code to compile and execute. You mu
             else:
                 return f"#ERROR {str(e)}"
 
+
 def eval_code(code:Annotated[str, "A python statement to compile and execute - returning the result of the statement."],
                 fix_broken_code:Annotated[bool, "Flag to enable the function to attempt to automatically fix broken code if possible"] = True,
                 max_attempts:Annotated[int, "The maximum number of attempts to try and fix the code before giving up"] = 3,
@@ -93,11 +94,21 @@ ONLY provide the code, do NOT include any commentaries or explanations, and do n
     return res
     
 
+_SAFE_IMPORTS = [ 
+    "bs4", "requests", "pandas", "numpy", "statistics", "json", "re", "datetime", "urllib", "math"
+]
+def _safe_import(name, *args, **kwargs):
+    if name not in _SAFE_IMPORTS:
+        raise Exception(f"Not allowed to import: {name!r}")
+    return __import__(name, *args, **kwargs)
+
+
 def _build_safe_globals() -> dict:
     from RestrictedPython import safe_globals, safe_builtins, utility_builtins
     from RestrictedPython.Guards import full_write_guard
     from RestrictedPython.Eval import default_guarded_getattr, default_guarded_getitem, default_guarded_getiter
     from RestrictedPython.PrintCollector import PrintCollector
+    
     import statistics
     import bs4
     import json
@@ -113,6 +124,7 @@ def _build_safe_globals() -> dict:
     allowed_globals.update(safe_globals.get('__builtins__'))
     allowed_globals.update(utility_builtins)
     allowed_globals.update(safe_builtins)
+    allowed_globals.update({ "__import__": _safe_import })
     allowed_globals.update({ "statistics": statistics })
     allowed_globals.update({ "bs4": bs4 })
     allowed_globals.update({ "json": json })
@@ -143,5 +155,5 @@ def _build_safe_globals() -> dict:
 
 def register_functions():
     from .function_registry import GLOBAL_FUNCTIONS_REGISTRY
-    GLOBAL_FUNCTIONS_REGISTRY.register_base_function("run_code", "Compiles the provided python code and executes the specified function, returning the result. The function signature must include a single parameter called 'data', eg. def myfunc(data). The following libraries are provided: bs4, requests, pandas, numpy, statistics, json, re, datetime, urllib, math", run_code)
-    GLOBAL_FUNCTIONS_REGISTRY.register_base_function("eval_code", "Compiles the provided python statement and executes it, returning the result. The following libraries are provided: bs4, requests, pandas, numpy, statistics, json, re, datetime, urllib, math", eval_code)
+    GLOBAL_FUNCTIONS_REGISTRY.register_base_function("run_code", "Compiles the provided python code and executes the specified function, returning the result. The function signature must include a single parameter called 'data', eg. def myfunc(data). The following globals (in addition to standard safe globals) are provided (Do not import libraries): bs4, requests, pandas, numpy, statistics, json, re, datetime, urllib, math", run_code)
+    GLOBAL_FUNCTIONS_REGISTRY.register_base_function("eval_code", "Compiles the provided python statement and executes it, returning the result.  The following globals (in addition to standard safe globals) are provided (Do not import libraries): bs4, requests, pandas, numpy, statistics, json, re, datetime, urllib, math", eval_code)
