@@ -1,4 +1,5 @@
 import os
+import logging
 from typing import Tuple
 from ..interfaces.abstract_history_provider import HistoryProvider
 from aiproxy.data.chat_message import ChatMessage
@@ -6,6 +7,16 @@ from concurrent.futures import ThreadPoolExecutor
 
 from aiproxy.functions.cosmosdb import get_item, upsert_item, ROOT_CONFIG_NAME
 
+def do_upsert(item:dict[str,any], config_name:str = None):
+        try:
+            upsert_item(item, source=config_name)
+        except Exception as e:
+            logging.error(f"Error upserting item {item['id']}: {e}")
+            import traceback
+            logging.error(traceback.format_exc())
+            # print(f"Error upserting item {item['id']}: {e}")
+            # raise e
+        
 class CosmosHistoryProvider(HistoryProvider):
     _config_name:str
     _executor:ThreadPoolExecutor
@@ -24,6 +35,7 @@ class CosmosHistoryProvider(HistoryProvider):
         metadata = item.get('metadata', None)
         return messages, metadata
 
+    
 
     def save_history(self, thread_id:str, history:list[ChatMessage], metadata:dict[str,any] = None):
         item = {
@@ -46,6 +58,6 @@ class CosmosHistoryProvider(HistoryProvider):
                     item_meta[k] = v
             item['metadata'] = item_meta
         if self._work_async:
-            self._executor.submit(upsert_item, item, source=self._config_name)
+            self._executor.submit(do_upsert, item, self._config_name)
         else:
-            upsert_item(item, source=self._config_name)
+            do_upsert(item, self._config_name)
